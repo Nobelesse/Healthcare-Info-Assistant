@@ -1,8 +1,8 @@
-"""Curated local UI translations for every selectable language.
+"""Curated UI strings and optional on-device translation packs.
 
-Do not add a language to LANGUAGES until its catalog has complete coverage.
-Technical product names, entered usernames, uploaded filenames and historical AI text
-are never translated automatically; only app-authored interface text is localized.
+The original four locales are complete. Additional languages have curated core
+labels, with English fallback until a local translation pack is generated.
+Neither project name nor user-provided content is automatically translated.
 """
 
 LANGUAGES = {
@@ -340,6 +340,52 @@ C.update({
 })
 
 
+
+# Extra languages are selectable without exposing arbitrary user text input.
+# Existing four complete catalogs are preserved byte-for-byte. The fallback for
+# any unavailable extra-language string is intentionally English (not a fake
+# machine translation); optional Ollama-built locale packs improve coverage.
+from ui.extra_languages import EXTRA_NAMES, EXTRA_TEXT, EXTRA_VOICES
+from functools import lru_cache
+import json
+from pathlib import Path
+from config.settings import ROOT
+
+LANGUAGES.update(EXTRA_NAMES)
+VOICE_LOCALES.update(EXTRA_VOICES)
+for _key, _row in list(C.items()):
+    C[_key] = tuple(_row) + tuple(EXTRA_TEXT[code].get(_key, _row[0]) for code in EXTRA_NAMES)
+
+@lru_cache(maxsize=1)
+def _locale_cache():
+    path = ROOT / 'instance' / 'locale_overrides.json'
+    try:
+        value = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def translated_override(language: str, key: str) -> str | None:
+    catalog = _locale_cache().get(language, {})
+    value = catalog.get(key) if isinstance(catalog, dict) else None
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def locale_coverage(language: str) -> tuple[int, int]:
+    """Number of localized items, never claim full support from English fallback."""
+    if language in {'en', 'hi', 'mr', 'es'}:
+        return len(C), len(C)
+    overrides = _locale_cache().get(language, {})
+    extra = EXTRA_TEXT.get(language, {})
+    total = len(C)
+    return sum(1 for key in C if key in extra or (isinstance(overrides, dict) and key in overrides)), total
+
+
+def reload_locale_cache():
+    _locale_cache.cache_clear()
+
+
 def event_label(raw: str, language: str = 'en') -> str:
     key = 'event_' + raw
     return t(key, language) if key in C else raw.replace('_', ' ')
@@ -352,6 +398,9 @@ def t(key: str, language: str = 'en', **params) -> str:
     if row is None:
         raise KeyError(f'Unknown UI translation key: {key}')
     value = row[tuple(LANGUAGES).index(language)]
+    override = translated_override(language, key)
+    if override:
+        value = override
     return value.format(**params) if params else value
 
 

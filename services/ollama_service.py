@@ -30,6 +30,18 @@ def _lang_instruction(lang):
                "explicaciones; conserva solo siglas médicas estándar."),
         "en": "Use plain, natural English and explain unfamiliar clinical terms.",
     }
+    added = {
+        "fr": "French (français)", "de": "German (Deutsch)",
+        "ja": "Japanese (日本語)", "zh": "Simplified Chinese (简体中文)",
+        "pt": "European Portuguese (Português)", "ru": "Russian (русский)",
+        "ar": "Arabic (العربية)", "bn": "Bengali (বাংলা)",
+        "ta": "Tamil (தமிழ்)", "te": "Telugu (తెలుగు)",
+    }
+    if lang in added:
+        return (f"Write the entire response in fluent, clear {added[lang]}. "
+                "Translate all headings, safety warnings and diet guidance into the requested language, "
+                "retaining established medical abbreviations and the name Healthcare Info Assistant. "
+                "Never mix in English prose unless an established medical term requires it.")
     return language_rules.get(lang, language_rules["en"])
 
 
@@ -97,7 +109,7 @@ def emergency_notice(question: str, lang="en") -> str:
     if lang == "hi":
         return ("🚨 **आपातकालीन सावधानी:** अगर ये लक्षण अभी हो रहे हैं, तो तुरंत स्थानीय आपातकालीन सेवा "
                 "या नज़दीकी इमरजेंसी विभाग से संपर्क करें। AI के जवाब का इंतज़ार न करें।")
-    if lang in {"mr", "es"}:
+    if lang != "en":
         from ui.strings import t
         return "🚨 " + t("emergency", lang)
     return ("🚨 **Emergency precaution:** If these symptoms are happening now, contact local emergency "
@@ -119,6 +131,10 @@ def medical_answer(question: str, lang="en", prior: list[dict] | None = None,
         "es": "## Significado médico\n## En palabras sencillas\n## Síntomas y causas frecuentes\n## Alimentos recomendados\n## Qué limitar\n## Cuándo consultar",
         "en": "## Medical meaning\n## In simple words\n## Common symptoms and causes\n## Food choices\n## Foods to limit\n## When to contact a clinician",
     }.get(lang, "## Medical meaning\n## In simple words\n## Common symptoms and causes\n## Food choices\n## Foods to limit\n## When to contact a clinician")
+    if lang not in {'en', 'hi', 'mr', 'es'}:
+        headers = ("Use appropriate headings translated into the requested language: Medical meaning; "
+                   "In simple words; Common symptoms and causes; Foods to choose; Foods to limit; "
+                   "When to consult a clinician.")
     guide = {"short": "Keep under 170 words unless safety requires more.",
              "standard": "Use around 200–300 words when appropriate.",
              "detailed": "Use 350–500 words only if the question warrants it."}[detail]
@@ -146,7 +162,7 @@ def report_answer(extracted_text: str, labs: list[dict], lang="en", detail="stan
               "\nInterpret only the supplied extract. Every test status is a comparison to a printed range, not a diagnosis. "
               "Do not infer an age- or sex-specific range, fill in missing units, or recommend medicine/supplement dose. "
               "Use sections: Summary; Notable results; What they might mean; Food choices and limits if relevant; "
-              "Questions to ask a clinician; What to verify. Use Hindi headings if applicable. "
+              "Questions to ask a clinician; What to verify. Translate ALL headings into the requested language. "
               "Specifically mention unknown ranges and any ambiguity, and avoid alarming wording. "
               f"Response length preference: {detail}.")
     user = ("STRUCTURED_EXTRACTION_BEGIN\n" + verified[:7000] + "\nSTRUCTURED_EXTRACTION_END\n"

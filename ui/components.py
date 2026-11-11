@@ -27,7 +27,7 @@ def brand(lang='en'):
     # Project name remains in English for all locales by explicit user request.
     st.markdown(f'''<div class="brand"><div class="brand-icon">♡</div><div>
       <div class="brand-title">Healthcare<br>Info Assistant</div>
-      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.3</span></div>
+      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.4</span></div>
       </div></div><div class="brand-line"></div>''', unsafe_allow_html=True)
 
 
@@ -43,7 +43,9 @@ def hero(name='', language='en', landing=False):
       <h1>{title}</h1><p>{escape(t('hero_desc',language))}</p>{chips}</div>
       <div class="hero-visual"><div class="hero-orbit hero-orbit-outer"></div>
       <div class="hero-orbit hero-orbit-inner"></div><div class="hero-scanner"></div>
-      <img class="hero-img" src="data:image/webp;base64,{img}" alt="" aria-hidden="true"/></div>
+      <div class="heart-float"><div class="heart-pulse-shell" role="img"
+      aria-label="Animated anatomical heart illustration"><img class="hero-img"
+      src="data:image/webp;base64,{img}" alt="" aria-hidden="true"/></div></div></div>
       <div class="hero-corner-label">{escape(t('hero_stamp', language))}</div></section>''',
                 unsafe_allow_html=True)
 

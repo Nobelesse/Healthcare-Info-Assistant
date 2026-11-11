@@ -320,3 +320,23 @@ This patch deliberately moves code files and deletes the obsolete `pages/*.py` e
 **Localization boundaries:** The app authors all visible interface labels in four languages, but browser-provided widget chrome may use the browser's locale, medical laboratory terms may remain in the report's original language, and Llama 3.2 3B does not guarantee fluent medically accurate content in every language. For medical decisions, consult a licensed clinician. Hindi PDF export is not bundled; use the UTF-8 `.txt` export for non-English summaries.
 
 Run `python -m pytest -q` after applying the patch, then restart with `python -m streamlit run app.py`.
+
+
+## v1.4 refinement — Healing Pearl UI and expanded language picker
+
+- New pale mint / pearl / soft blue light mode, high-contrast hero, and refined clinical-teal sidebar.
+- Heart illustration now has an animated double-beat pulse with reduced-motion support.
+- Language is selected from a **fixed dropdown**; users cannot add arbitrary languages.
+- Four complete curated interface catalogs: English, हिन्दी, मराठी and Español.
+- Ten **preview languages** (curated main navigation, forms, emergencies and other common labels):
+  Français, Deutsch, 日本語, 简体中文, Português, Русский, العربية, বাংলা, தமிழ், తెలుగు.
+- Important: preview languages fall back to English for any UI label not yet translated.
+  To locally translate remaining static app-authored text using your Ollama model, run
+  `python -m scripts.translate_ui --languages fr de ja zh` (or any selected preview codes)
+  **once**; this can take considerable time on an 8 GB laptop, is not guaranteed
+  to be perfect, and may require proofreading. It never sends patient data or
+  passwords. Local translations are saved to `instance/locale_overrides.json`.
+  Restart Streamlit after generating a pack. Browser-generated controls, historical
+  AI answers, uploaded reports and names are not automatically translated.
+- Voice transcription and speech output for newly added languages depend on the
+  local recognition model and installed browser/system voices.

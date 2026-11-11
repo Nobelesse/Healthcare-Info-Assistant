@@ -48,8 +48,9 @@ def test_no_missing_literal_keys_in_application():
 def test_fixed_selection_language_controls_no_open_input():
     app=(ROOT/'app.py').read_text(encoding='utf-8')
     member=(ROOT/'views/user_views.py').read_text(encoding='utf-8')
-    assert 'st.radio(' in app and 'st.radio(' in member
+    assert 'st.selectbox(' in app and 'st.selectbox(' in member
     assert 'lang_to_code' not in app
+    assert 'accept_new_options=False' in app
     assert 'accept_new_options=True' not in app+member
     assert 'st.text_input("Language' not in app+member
 

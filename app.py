@@ -11,7 +11,7 @@ from config.settings import ADMIN_USERNAME
 from database.store import initialize_database, get_user
 from database import store
 from ui.components import inject_css, brand, sidebar_user, footer, hero, section, advisory
-from ui.strings import t, LANGUAGES, supported
+from ui.strings import t, LANGUAGES, supported, locale_coverage
 from views import user_views, admin_views
 from views.about_view import about_page
 
@@ -77,12 +77,14 @@ def _nav_button(page, icon, label, *, guest=False):
 
 def _sidebar_preferences(lang, *, guest=False, user=None, admin=False):
     _sidebar_heading(t("sidebar_preferences", lang), t("sidebar_preferences_help", lang))
-    selected = st.radio(
+    selected = st.selectbox(
         t("sidebar_language_label", lang),
         options=list(LANGUAGES),
         index=list(LANGUAGES).index(supported(lang)),
         format_func=LANGUAGES.get,
         key="guest_language_select" if guest else "member_language_select",
+        accept_new_options=False,
+        width="stretch",
     )
     wanted = selected
     if wanted != lang:
@@ -90,6 +92,10 @@ def _sidebar_preferences(lang, *, guest=False, user=None, admin=False):
         if not guest and not admin and user:
             store.update_user_profile(user["id"], user["full_name"], wanted)
         st.rerun()
+    translated, total = locale_coverage(lang)
+    if translated < total:
+        st.caption(f"🌐 {translated}/{total} interface labels localized. "
+                   "Additional labels use English until an optional offline Ollama language pack is generated.")
     theme_now = st.toggle(
         t("sidebar_light_theme", lang),
         value=st.session_state.get("theme", "dark") == "light",
@@ -144,9 +150,9 @@ def _user_register(lang):
         e = st.text_input(t("field_email", lang), max_chars=254)
         pw = st.text_input(t("field_new_password", lang), type="password")
         pw2 = st.text_input(t("field_confirm_password", lang), type="password")
-        l = st.radio(t("field_preferred_language", lang), list(LANGUAGES),
+        l = st.selectbox(t("field_preferred_language", lang), list(LANGUAGES),
                          index=list(LANGUAGES).index(supported(lang)),
-                         format_func=LANGUAGES.get)
+                         format_func=LANGUAGES.get, accept_new_options=False)
         consent = st.checkbox(t("field_consent", lang))
         if st.form_submit_button(t("action_create_account", lang), type="primary", width="stretch"):
             if pw != pw2:
