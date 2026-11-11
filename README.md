@@ -435,3 +435,18 @@ records only.
 Existing SQLite data, all passwords, `.env`, Git history and downloaded
 models remain unchanged by the v1.8 code-only patch. No database migration is
 needed, and `git init` must not be repeated for an existing repository.
+
+## Dashboard card consistency — refinement v1.9
+
+The **Everything you need, in one place** dashboard has four equal-width quick
+access columns (AI Health Assistant, Report Analyzer, Voice Assistant and Health
+Insights). Their visual cards now share a consistent height, icon placement,
+title spacing and button gap so **all four Open buttons line up in one row**.
+The fix is scoped to the dashboard (`dashboard_quick_actions`) and does not
+change the cards shown on the About page, other screen components, navigation,
+or any database data.
+
+For medium-size windows, cards reserve additional height for longer translated
+labels. On narrow phones, they grow naturally when stacked so translated text
+is not intentionally truncated. As with other CSS changes, restart Streamlit
+and use `Ctrl+Shift+R` to clear cached styles before reviewing on Windows.

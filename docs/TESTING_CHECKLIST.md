@@ -51,3 +51,13 @@
 - [ ] Japanese/French/Chinese and other added languages: first switch prepares full local pack; no false success while incomplete.
 - [ ] Changing language updates admin, reports, chat, voice, history, and About; user data and source medical values are not silently modified.
 - [ ] Instance/locales, .env, database and Git remain unchanged during patch installation.
+
+### v1.9 dashboard visual checks
+- [ ] All four quick-access cards have equal height and width at desktop sizes.
+- [ ] All four Open buttons have matching dimensions and a shared horizontal baseline.
+- [ ] Icon boxes, titles and descriptions have consistent interior spacing.
+- [ ] Buttons open Chat, Reports, Voice and Insights respectively.
+- [ ] Switch to Hindi/Spanish and check longer titles and descriptions still fit.
+- [ ] In light theme, text and buttons remain readable; in dark theme, 3D glow remains subtle.
+- [ ] On narrow/mobile windows, card content stays readable and buttons stay reachable.
+- [ ] About Project cards and user/admin data remain unchanged.

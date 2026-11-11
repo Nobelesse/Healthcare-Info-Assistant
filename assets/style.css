@@ -905,3 +905,79 @@ button[kind="primary"],.stButton button[kind="primary"],.stFormSubmitButton butt
   .stApp .hero:not(.hero-auth) .hero-copy {max-width:100% !important;}
   .stApp .hero .hero-img {max-height:290px !important;}
 }
+
+
+/* ========================================================================
+   v1.9 — Equal-height interactive dashboard quick-action cards.
+   The four quick actions live in a keyed Streamlit container so these styles
+   do not affect the independent About-page feature grid or other buttons.
+   ======================================================================== */
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card {
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0;
+  height:258px !important;
+  min-height:258px !important;
+  margin:0 !important;
+  padding:22px !important;
+  display:flex !important;
+  flex-direction:column;
+  align-items:stretch;
+  overflow:visible;
+  border-radius:22px;
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;
+}
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-icon {
+  width:52px;height:52px;min-height:52px;margin:0 0 14px !important;
+  flex:0 0 52px;
+}
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card h3 {
+  margin:0 0 10px !important;
+  min-height:46px;
+  line-height:1.32;
+  font-size:16px;
+  overflow-wrap:anywhere;
+}
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card p {
+  margin:0 !important;
+  line-height:1.5;
+  font-size:13px;
+  overflow-wrap:anywhere;
+}
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions [data-testid="stButton"] {
+  margin:11px 0 0 !important;
+}
+.stApp [data-testid="stMain"] .st-key-dashboard_quick_actions [data-testid="stButton"] button {
+  width:100% !important;
+  min-height:46px !important;
+  border-radius:14px !important;
+  margin:0 !important;
+  font-weight:650;
+}
+/* Four narrow columns need more height for long localized descriptions. */
+@media (min-width:761px) and (max-width:1250px) {
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card {
+    height:310px !important;min-height:310px !important;
+    padding:18px !important;
+  }
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card h3 {
+    min-height:58px;
+  }
+}
+/* Streamlit stacks columns on small screens. Let descriptions grow naturally. */
+@media (max-width:760px) {
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card {
+    height:auto !important;min-height:206px !important;padding:20px !important;
+  }
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card h3 {
+    min-height:0;
+  }
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions [data-testid="stButton"] {
+    margin:9px 0 18px !important;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  .stApp [data-testid="stMain"] .st-key-dashboard_quick_actions .feature-card {
+    transition:none !important;
+  }
+}

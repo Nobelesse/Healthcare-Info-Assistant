@@ -53,11 +53,15 @@ def dashboard(user,lang):
     section(t('dash_heading',lang),t('dash_desc',lang),t('sidebar_workspace',lang))
     features=[('chat','chat','dash_chat_desc','🧠'),('reports','reports','dash_reports_desc','📋'),
               ('voice','voice','dash_voice_desc','🎙'),('insights','insights','dash_insights_desc','📊')]
-    for col,(page,key,desc,icon) in zip(st.columns(4),features):
-        with col:
-            feature_card(t(key,lang),t(desc,lang),icon)
-            if st.button(t('action_open',lang),key='quick_'+page,width='stretch'):
-                _navigate(page)
+    # Keep the four interactive actions in a dedicated, CSS-scoped grid. Card
+    # heights and button alignment are shared across all translations, without
+    # changing the reusable feature cards on the About page.
+    with st.container(key='dashboard_quick_actions'):
+        for col,(page,key,desc,icon) in zip(st.columns(4, gap='medium'),features):
+            with col:
+                feature_card(t(key,lang),t(desc,lang),icon)
+                if st.button(t('action_open',lang),key='quick_'+page,width='stretch'):
+                    _navigate(page)
     ok,label=ai_status()
     (st.success if ok else st.warning)(("🟢 " + t('ollama_ready',lang)) if ok else
                                        ("🟠 " + t('ollama_offline',lang)))
