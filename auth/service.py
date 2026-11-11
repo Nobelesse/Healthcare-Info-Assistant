@@ -6,6 +6,7 @@ from argon2.exceptions import VerifyMismatchError, VerificationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from config.settings import ADMIN_USERNAME, ADMIN_INITIAL_PASSWORD
+from ui.strings import LANGUAGES
 from database.models import User
 from database.store import session_scope, public_user, record_audit
 
@@ -50,7 +51,7 @@ def register_user(username: str, full_name: str, email: str, password: str, cons
     if not consent:
         raise AuthError("Consent is required because the administrator can access stored medical information.")
     validate_password(password)
-    if language not in {"en", "hi"}:
+    if language not in LANGUAGES:
         raise AuthError("Unsupported language.")
     try:
         with session_scope() as s:

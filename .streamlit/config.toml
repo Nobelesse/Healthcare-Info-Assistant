@@ -1,9 +1,9 @@
 [theme]
 base = "dark"
-primaryColor = "#24E8DB"
-backgroundColor = "#06101F"
-secondaryBackgroundColor = "#0D2034"
-textColor = "#EAF8FF"
+primaryColor = "#34BBA9"
+backgroundColor = "#071928"
+secondaryBackgroundColor = "#103344"
+textColor = "#EAF9FB"
 font = "sans serif"
 
 [server]
@@ -15,3 +15,8 @@ enableCORS = true
 
 [browser]
 gatherUsageStats = false
+
+[client]
+# We use account-aware buttons in app.py, not Streamlit's automatic page list.
+showSidebarNavigation = false
+toolbarMode = "minimal"

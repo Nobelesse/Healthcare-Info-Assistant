@@ -2,7 +2,7 @@
 import io
 import re
 from pathlib import Path
-import fitz
+import pymupdf
 from config.settings import MAX_REPORT_BYTES, MAX_REPORT_PAGES, MAX_REPORT_CHARS, ENABLE_OCR, TESSERACT_CMD
 
 
@@ -12,6 +12,15 @@ class ReportError(ValueError):
 
 # Ordering matters: specific names before broader labels to avoid overlapping matches.
 TEST_NAMES = [
+    ("eGFR", ["egfr", "estimated glomerular filtration rate"]),
+    ("Uric Acid", ["uric acid", "serum urate"]),
+    ("Albumin", ["serum albumin", "albumin"]),
+    ("Alkaline Phosphatase", ["alkaline phosphatase", "alp"]),
+    ("CRP", ["c-reactive protein", "crp"]),
+    ("ESR", ["erythrocyte sedimentation rate", "esr"]),
+    ("MCHC", ["mean corpuscular hemoglobin concentration", "mchc"]),
+    ("MCH", ["mean corpuscular hemoglobin", "mch"]),
+    ("MCV", ["mean corpuscular volume", "mcv"]),
     ("HbA1c", ["hba1c", "hemoglobin a1c", "glycated hemoglobin", "glycosylated hemoglobin"]),
     ("LDL Cholesterol", ["ldl cholesterol", "ldl-c", "ldl"]),
     ("HDL Cholesterol", ["hdl cholesterol", "hdl-c", "hdl"]),
@@ -41,7 +50,7 @@ TEST_NAMES = [
     ("Folate", ["folate", "folic acid"]),
     ("Magnesium", ["magnesium"]),
 ]
-UNIT = r"(?:mg/dL|ng/mL|g/dL|mmol/L|µmol/L|umol/L|pg/mL|mIU/L|µIU/mL|uIU/mL|U/L|IU/L|mEq/L|fL|pg|%|10\^3/µL|10\^6/µL|x10\^3/uL|x10\^6/uL)"
+UNIT = r"(?:mg/L|g/L|ng/L|µg/dL|ug/dL|mg/dL|ng/mL|g/dL|mmol/L|µmol/L|umol/L|pg/mL|mL/min/1\.73m2|mIU/L|µIU/mL|uIU/mL|U/L|IU/L|mEq/L|fL|pg|%|10\^3/µL|10\^6/µL|x10\^3/uL|x10\^6/uL)"
 NUMBER = r"-?\d{1,5}(?:[.,]\d{1,4})?"
 # Reference must appear AFTER the measured value: e.g. 165 mg/dL 0-100; 4.5 mIU/L 0.4 - 4.0
 RANGE_RE = re.compile(rf"(?<!\w)({NUMBER})\s*(?:-|–|—|to)\s*({NUMBER})(?!\w)", re.I)
@@ -60,7 +69,7 @@ def _optional_ocr(page) -> str:
         from PIL import Image
         if TESSERACT_CMD:
             pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
-        pix = page.get_pixmap(matrix=fitz.Matrix(1.7, 1.7), alpha=False)
+        pix = page.get_pixmap(matrix=pymupdf.Matrix(1.7, 1.7), alpha=False)
         pic = Image.open(io.BytesIO(pix.tobytes("png")))
         return pytesseract.image_to_string(pic, lang="eng")
     except Exception:
@@ -73,7 +82,7 @@ def extract_pdf(data: bytes) -> tuple[str, int]:
     if not data.startswith(b"%PDF-"):
         raise ReportError("Only valid PDF files are accepted.")
     try:
-        with fitz.open(stream=data, filetype="pdf") as doc:
+        with pymupdf.open(stream=data, filetype="pdf") as doc:
             if doc.needs_pass:
                 raise ReportError("Password-protected PDFs are not supported. Export an unlocked copy.")
             if len(doc) > MAX_REPORT_PAGES:
@@ -87,7 +96,7 @@ def extract_pdf(data: bytes) -> tuple[str, int]:
             text = "\n".join(parts)
     except ReportError:
         raise
-    except (ValueError, RuntimeError, fitz.FileDataError) as exc:
+    except (ValueError, RuntimeError, pymupdf.FileDataError) as exc:
         raise ReportError("PDF is damaged or could not be opened.") from exc
     if len(text.strip()) < 20:
         raise ReportError("No readable text found. This is likely a scanned PDF. Optional OCR needs Tesseract installed and ENABLE_OCR=true.")
@@ -137,7 +146,10 @@ def analyze_labs(text: str) -> list[dict]:
         if not test:
             continue
         # Remove parenthetical common test labels before the value, but never substitute one.
-        suffix = re.sub(r"^\s*\((?:25[- ]?OH|serum|plasma|fasting)\)\s*", " ", suffix, flags=re.I)
+        suffix = re.sub(r"^\s*\((?:25[- ]?OH|serum|plasma|fasting|SGOT|SGPT|ALT|AST)\)\s*", " ", suffix, flags=re.I)
+        # Reject dangling reference-style fragments that precede a true value.
+        if re.match(r"^\s*(?:range|reference|normal)\b", suffix, re.I):
+            continue
         suffix = suffix.lstrip(" :\t|–-")
         match = VALUE_RE.search(suffix)
         if not match:

@@ -111,16 +111,14 @@ def list_reports(user_id: int | None = None, limit: int = 100) -> list[dict]:
 
 
 def get_report(report_id: int, requesting_user_id: int, *, admin=False) -> dict | None:
+    if admin:
+        # Backward-compatible admin call; make it consent-gated and automatically audited.
+        return admin_open_report(requesting_user_id, report_id)
     with session_scope() as s:
-        if admin:
-            actor = s.get(User, requesting_user_id)
-            if not actor or actor.role != "admin" or not actor.is_active:
-                return None
-        q = select(Report).where(Report.id == report_id)
-        if not admin:
-            q = q.where(Report.user_id == requesting_user_id)
-        r = s.scalar(q)
+        r = s.scalar(select(Report).where(Report.id == report_id,
+                                          Report.user_id == requesting_user_id))
         return _report_dict(r, include_raw=True) if r else None
+
 
 
 def delete_report(user_id: int, report_id: int) -> bool:
@@ -188,3 +186,76 @@ def delete_account(user_id: int) -> bool:
         # Retain minimal admin-access audit records, which do not include medical content.
         s.delete(u)
         return True
+
+
+def _authorized_admin(session, actor_id: int) -> bool:
+    actor = session.get(User, actor_id)
+    return bool(actor and actor.role == "admin" and actor.is_active)
+
+
+def admin_report_headers(actor_id: int, limit=200) -> list[dict]:
+    """Return non-medical metadata only; no names/text or lab results before audited access."""
+    with session_scope() as s:
+        if not _authorized_admin(s, actor_id):
+            return []
+        rows = s.execute(
+            select(Report.id, Report.user_id, Report.created_at, Report.page_count)
+            .join(User, User.id == Report.user_id)
+            .where(User.consented.is_(True))
+            .order_by(Report.id.desc()).limit(min(limit, 200))
+        ).all()
+        return [{"id": r.id, "user_id": r.user_id, "created_at": r.created_at,
+                 "page_count": r.page_count} for r in rows]
+
+
+def admin_open_report(actor_id: int, report_id: int) -> dict | None:
+    """Consent-gated report read plus audit event in the same DB transaction."""
+    with session_scope() as s:
+        if not _authorized_admin(s, actor_id):
+            return None
+        r = s.scalar(select(Report).join(User, User.id == Report.user_id)
+                     .where(Report.id == report_id, User.consented.is_(True)))
+        if not r:
+            return None
+        s.add(AuditEvent(actor_id=actor_id, action="admin_read_report",
+                         target_user_id=r.user_id, target_id=r.id))
+        return _report_dict(r, include_raw=True)
+
+
+def admin_conversation_headers(actor_id: int, limit=150) -> list[dict]:
+    with session_scope() as s:
+        if not _authorized_admin(s, actor_id):
+            return []
+        rows = s.execute(
+            select(Interaction.id, Interaction.user_id, Interaction.created_at, Interaction.kind)
+            .join(User, User.id == Interaction.user_id)
+            .where(User.consented.is_(True))
+            .order_by(Interaction.id.desc()).limit(min(limit, 200))
+        ).all()
+        return [{"id": r.id, "user_id": r.user_id, "created_at": r.created_at,
+                 "kind": r.kind} for r in rows]
+
+
+def admin_open_conversation(actor_id: int, interaction_id: int) -> dict | None:
+    with session_scope() as s:
+        if not _authorized_admin(s, actor_id):
+            return None
+        row = s.scalar(select(Interaction).join(User, User.id == Interaction.user_id)
+                       .where(Interaction.id == interaction_id, User.consented.is_(True)))
+        if not row:
+            return None
+        s.add(AuditEvent(actor_id=actor_id, action="admin_read_conversation",
+                         target_user_id=row.user_id, target_id=row.id))
+        return {"id": row.id, "user_id": row.user_id, "kind": row.kind,
+                "question": row.question, "response": row.response, "created_at": row.created_at}
+
+
+def admin_user_insights(actor_id: int) -> dict:
+    """Counts without disclosing medical content."""
+    with session_scope() as s:
+        if not _authorized_admin(s, actor_id):
+            return {}
+        active = s.scalar(select(func.count(User.id)).where(User.role == "user", User.is_active.is_(True)))
+        inactive = s.scalar(select(func.count(User.id)).where(User.role == "user", User.is_active.is_(False)))
+        consented = s.scalar(select(func.count(User.id)).where(User.role == "user", User.consented.is_(True)))
+        return {"active": active, "inactive": inactive, "consented": consented}

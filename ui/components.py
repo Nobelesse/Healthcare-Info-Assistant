@@ -1,97 +1,126 @@
-"""Original dashboard components. All user-controlled HTML content is escaped."""
+"""Safe UI components and browser playback with consistent localization."""
 import base64
 from functools import lru_cache
 from html import escape
 import json
 from pathlib import Path
+import re
 import streamlit as st
 import streamlit.components.v1 as components
 from config.settings import ROOT
-from ui.strings import t
+from ui.strings import t, VOICE_LOCALES
 
 
 @lru_cache(maxsize=1)
 def _heart_data():
-    return base64.b64encode((ROOT / "assets" / "heart.webp").read_bytes()).decode("ascii")
+    return base64.b64encode((ROOT / 'assets' / 'heart.webp').read_bytes()).decode('ascii')
 
 
-def inject_css(theme="dark"):
-    css = (ROOT / "assets" / "style.css").read_text(encoding="utf-8")
-    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    if theme == "light":
-        st.markdown('<span id="theme-light-marker" style="display:none"></span>', unsafe_allow_html=True)
+def inject_css(theme='dark'):
+    css = (ROOT / 'assets' / 'style.css').read_text(encoding='utf-8')
+    st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+    if theme == 'light':
+        st.markdown('<span id="theme-light-marker" hidden></span>', unsafe_allow_html=True)
 
 
-def brand():
-    st.markdown('''<div class="brand"><div class="brand-icon">♡</div><div>
-    <div class="brand-title">Healthcare<br>Info Assistant</div><div class="brand-subtitle">AI • MEDTECH</div></div></div>
-    <div class="brand-line"></div>''', unsafe_allow_html=True)
+def brand(lang='en'):
+    # Project name remains in English for all locales by explicit user request.
+    st.markdown(f'''<div class="brand"><div class="brand-icon">♡</div><div>
+      <div class="brand-title">Healthcare<br>Info Assistant</div>
+      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.3</span></div>
+      </div></div><div class="brand-line"></div>''', unsafe_allow_html=True)
 
 
-def hero(name="", language="en", landing=False):
-    title = ("आपका डिजिटल स्वास्थ्य साथी" if language == "hi" else "Intelligent Healthcare, <span class='gradient-text'>Simply Explained.</span>")
-    subtitle = ("बीमारियों, कमियों और लैब रिपोर्ट को आसान हिंदी में समझें।" if language == "hi" else
-                "Understand health conditions, nutrition and medical reports with local AI — private, bilingual and designed for clarity.")
-    eyebrow = "AI-POWERED HEALTH INSIGHTS" if language == "en" else "AI आधारित स्वास्थ्य जानकारी"
-    if name and not landing:
-        eyebrow = (f"WELCOME BACK, {escape(name.upper())}" if language == "en" else f"स्वागत है, {escape(name)}")
+def hero(name='', language='en', landing=False):
+    title = f'{escape(t("hero_title_1",language))} <span class="gradient-text">{escape(t("hero_title_2",language))}</span>'
+    eyebrow = (t('hero_welcome', language, name=name) if name and not landing
+               else t('hero_eyebrow', language))
     img = _heart_data()
-    html = f'''<section class="hero"><div class="hero-copy"><div class="eyebrow">✦ {eyebrow}</div>
-       <h1>{title}</h1><p>{subtitle}</p>
-       <span class="hero-chip">✧ {"Bilingual AI" if language == "en" else "हिंदी + English"}</span>
-       <span class="hero-chip">◈ Offline AI · Ollama</span>
-       <span class="hero-chip">♡ Medical education</span></div>
-       <img class="hero-img" src="data:image/webp;base64,{img}" alt="Decorative futuristic 3D holographic heart" /></section>'''
-    st.markdown(html, unsafe_allow_html=True)
+    chips = ''.join(f'<span class="hero-chip">{symbol} {escape(t(k,language))}</span>' for symbol,k in
+                    [('✧','hero_chip_1'),('◈','hero_chip_2'),('♡','hero_chip_3')])
+    st.markdown(f'''<section class="hero{' hero-auth' if landing else ''}">
+      <div class="hero-copy"><div class="eyebrow">✦ {escape(eyebrow)}</div>
+      <h1>{title}</h1><p>{escape(t('hero_desc',language))}</p>{chips}</div>
+      <div class="hero-visual"><div class="hero-orbit hero-orbit-outer"></div>
+      <div class="hero-orbit hero-orbit-inner"></div><div class="hero-scanner"></div>
+      <img class="hero-img" src="data:image/webp;base64,{img}" alt="" aria-hidden="true"/></div>
+      <div class="hero-corner-label">{escape(t('hero_stamp', language))}</div></section>''',
+                unsafe_allow_html=True)
 
 
-def section(title, caption="", overline="EXPERIENCE"):
-    st.markdown(f'<div class="section-overline">{escape(overline)}</div><div class="section-heading">{escape(title)}</div>'
+def section(title, caption='', overline=''):
+    st.markdown(f'<div class="section-overline">{escape(overline)}</div>'
+                f'<div class="section-heading">{escape(title)}</div>'
                 f'<p class="section-caption">{escape(caption)}</p>', unsafe_allow_html=True)
 
 
-def metric(label: str, value: str, icon="✧", tint="#19cde4"):
-    st.markdown(f'''<div class="metric-card" style="--tint:{escape(tint)}"><div class="symbol">{escape(icon)}</div>
-    <div class="value">{escape(str(value))}</div><div class="hint">{escape(label)}</div></div>''', unsafe_allow_html=True)
+def metric(label: str, value, icon='✧', tint='rgba(45,195,181,.14)'):
+    st.markdown(f'''<div class="metric-card" style="--tint:{escape(tint)}">
+        <div class="symbol">{escape(icon)}</div><div class="value">{escape(str(value))}</div>
+        <div class="hint">{escape(label)}</div></div>''', unsafe_allow_html=True)
 
 
 def feature_card(title, desc, icon):
     st.markdown(f'''<div class="feature-card"><div class="feature-icon">{escape(icon)}</div>
-    <h3>{escape(title)}</h3><p>{escape(desc)}</p></div>''', unsafe_allow_html=True)
+        <h3>{escape(title)}</h3><p>{escape(desc)}</p></div>''', unsafe_allow_html=True)
 
 
-def advisory(lang="en"):
-    st.markdown(f'<div class="notice">⚕ {escape(t("caution",lang))} '
-                + ("For urgent symptoms, seek emergency services immediately." if lang == "en" else
-                   "गंभीर लक्षण होने पर तुरंत आपातकालीन चिकित्सा सहायता लें।") + '</div>', unsafe_allow_html=True)
+def advisory(lang='en'):
+    st.markdown(f'<div class="notice">⚕ {escape(t("caution", lang))} {escape(t("emergency",lang))}</div>',
+                unsafe_allow_html=True)
 
 
-def speech_button(text: str, lang="en", key="speech"):
-    """Local browser TTS after a direct user click; no network services or paid voices."""
-    text = text[:2200]
-    serialized = json.dumps(text, ensure_ascii=True).replace("<", "\\u003c")
-    langtag = "hi-IN" if lang == "hi" else "en-IN"
-    components.html(f'''<!doctype html><html><head><style>
-      body{{margin:0;background:transparent;font-family:system-ui;}}
-      button{{padding:10px 17px;border:1px solid #38dddc;border-radius:12px;background:linear-gradient(135deg,#0b5868,#0b2a4b);color:#c8ffff;cursor:pointer;font-weight:650}}
-      button:hover{{box-shadow:0 0 20px #0c8790;}}</style></head>
-      <body><button id="speak">🔊 {"सुनें / रोकें" if lang == "hi" else "Read aloud / Stop"}</button>
-      <script>const text={serialized};const lang={json.dumps(langtag)};
-      document.getElementById('speak').addEventListener('click',()=>{{
-      if(!('speechSynthesis' in window)){{alert('Speech playback not supported by this browser.');return;}}
-      if(speechSynthesis.speaking){{speechSynthesis.cancel();return;}}
-      let u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=.92;
-      let voices=speechSynthesis.getVoices();let v=voices.find(x=>x.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));
-      if(v)u.voice=v;speechSynthesis.speak(u);
-      }});</script></body></html>''', height=58, scrolling=False)
+def speech_button(text: str, lang='en', key='speech'):
+    """Browser TTS: support depends on installed voices. Labels fully localized."""
+    cleaned = re.sub(r'[\`*_#>\[\]]', '', text)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()[:5000]
+    words = {k: t(k,lang) for k in (
+        'play','stop','speed','speech_stopped','speech_unavailable','speech_speaking',
+        'speech_finished','speech_voice_missing','speech_audio_error')}
+    payload = json.dumps(cleaned, ensure_ascii=True).replace('<','\\u003c')
+    strings = json.dumps(words,ensure_ascii=True).replace('<','\\u003c')
+    locale = VOICE_LOCALES.get(lang, 'en-IN')
+    frame = r'''<!doctype html><html><head><meta charset="UTF-8"/><style>
+      html,body{margin:0;background:transparent;color:#d9faf5;font:13px system-ui,sans-serif}
+      .controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+      button,select{border:1px solid #38998e;border-radius:11px;background:#123b49;color:#efffff;padding:9px 13px;cursor:pointer}
+      button:hover{background:#196475} label{color:#d9f9f5} #hint{color:#b5dedb;font-size:12px}
+      </style></head><body><div class="controls">
+      <button id="play"></button><button id="stop" type="button"></button>
+      <label for="speed" id="speed-label"></label>
+      <select id="speed"><option value="0.85">0.85×</option><option value="1" selected>1×</option>
+      <option value="1.15">1.15×</option></select><span id="hint"></span></div>
+      <script>
+      const full=__TEXT__,locale=__LOCALE__,msg=__WORDS__;
+      document.getElementById('play').textContent='🔊 '+msg.play;
+      document.getElementById('stop').textContent='■ '+msg.stop;
+      document.getElementById('speed-label').textContent=msg.speed;
+      const hint=document.getElementById('hint');
+      function cancel(){if('speechSynthesis' in window) speechSynthesis.cancel();}
+      document.getElementById('stop').onclick=()=>{cancel();hint.textContent=msg.speech_stopped;};
+      document.getElementById('play').onclick=()=>{
+        if(!('speechSynthesis' in window)){hint.textContent=msg.speech_unavailable;return;}
+        cancel();const voices=speechSynthesis.getVoices();
+        const voice=voices.find(v=>v.lang.toLowerCase().startsWith(locale.slice(0,2).toLowerCase()));
+        const chunks=full.match(/[\s\S]{1,160}/g)||[full];let index=0;
+        hint.textContent=voice?msg.speech_speaking:msg.speech_voice_missing;
+        function next(){if(index>=chunks.length){hint.textContent=msg.speech_finished;return;}
+          const utter=new SpeechSynthesisUtterance(chunks[index++]);utter.lang=locale;
+          utter.rate=Number(document.getElementById('speed').value);if(voice) utter.voice=voice;
+          utter.onend=next;utter.onerror=()=>{hint.textContent=msg.speech_audio_error;};
+          speechSynthesis.speak(utter);
+        }next();
+      };
+      </script></body></html>'''
+    frame = frame.replace('__TEXT__',payload).replace('__LOCALE__',json.dumps(locale)).replace('__WORDS__',strings)
+    components.html(frame,height=88,scrolling=False)
 
 
-def sidebar_user(user, lang="en"):
-    safe_name = escape(user["full_name"])
-    st.markdown(f'<div class="profile-glass"><b>◉ {safe_name}</b><small>● SECURE USER ACCOUNT</small></div>', unsafe_allow_html=True)
+def sidebar_user(user, lang='en'):
+    st.markdown(f'<div class="profile-glass"><b>◉ {escape(user["full_name"])}</b>'
+                f'<small>● {escape(t("sidebar_account_secure", lang))}</small></div>', unsafe_allow_html=True)
 
 
-def footer():
-    st.markdown('<div class="footer-note">HEALTHCARE INFO ASSISTANT • LOCAL AI · PRIVACY-FIRST DEMONSTRATION<br>'
-                'Educational information, not medical advice or diagnosis. Always verify report readings with your laboratory and clinician.</div>',
+def footer(lang='en'):
+    st.markdown(f'<div class="footer-note"><b>Healthcare Info Assistant</b> · {escape(t("footer",lang))}</div>',
                 unsafe_allow_html=True)

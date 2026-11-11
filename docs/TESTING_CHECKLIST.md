@@ -24,3 +24,18 @@
 - [ ] GitHub `.gitignore` excludes `.env`, local SQLite DB and real report files.
 
 **Scope:** Local educational demo only. No certification, clinical validation or public web deployment is claimed.
+
+## Refinement v1.1 manual validation (local Windows)
+
+- [ ] Dashboard uses holographic heart/orbit, professional sidebar, login tabs, responsive cards and light theme.
+- [ ] Sign in as user; ask an English question with Short and Detailed responses. Verify the actual Ollama response.
+- [ ] Switch to हिंदी; verify explanations are in readable Devanagari. Local Llama 3.2 may still be imperfect.
+- [ ] Upload `docs/sample_report.pdf`; verify extracted test values against the original PDF and status-count cards.
+- [ ] Upload another fictional report with the same test/units to check repeated-test chart; avoid comparing different units.
+- [ ] Record a short sample in Hindi and English, check auto-detect, edit the transcript, then ask Ollama.
+- [ ] Click Play/Stop and change speed; Hindi speech depends on locally installed browser voices.
+- [ ] Log in as Mr. Doc; verify report and conversation listings show only metadata before pressing Open.
+- [ ] Open a fictional report/conversation, then check Audit Log for recorded access.
+- [ ] Change an account's active status and verify it is reflected in the admin dashboard.
+- [ ] Run `python -m pytest -q` and `python -m scripts.doctor`.
+- [ ] Verify `.env`, `instance/`, database files, medical uploads and local Whisper models are **not** staged with Git.

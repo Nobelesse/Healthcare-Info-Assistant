@@ -1,4 +1,4 @@
-import fitz
+import pymupdf
 import pytest
 from services.report_service import analyze_labs, extract_pdf, ReportError, clean_filename
 
@@ -24,7 +24,7 @@ def test_range_flags_only_when_range_is_supplied():
 
 
 def test_real_pdf_extraction():
-    doc=fitz.open()
+    doc=pymupdf.open()
     page=doc.new_page()
     page.insert_text((75,100),"Illustrative Laboratory Report",fontsize=15)
     page.insert_text((75,135),"LDL Cholesterol 165 mg/dL 0 - 100",fontsize=10)

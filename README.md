@@ -1,6 +1,6 @@
 # Healthcare Info Assistant 🩺
 
-**Your Intelligent Healthcare Information Companion** — a bilingual English/हिंदी, local-Ollama-powered medical education app built with Python 3.11 and Streamlit. Includes a futuristic 3D-inspired glass dashboard, secure user authentication, permanent administrator, medical questions, PDF lab report analysis, voice input, spoken responses, saved history and health charts.
+**Your Intelligent Healthcare Information Companion** — a four-language (English, Hindi, Marathi, Spanish), local-Ollama-powered medical education app built with Python 3.11 and Streamlit. Includes a futuristic 3D-inspired glass dashboard, secure user authentication, permanent administrator, medical questions, PDF lab report analysis, voice input, spoken responses, saved history and health charts.
 
 > **Important:** This is a local **educational demonstration**, not a diagnostic tool, medical device, doctor, prescription service or production patient portal. Llama 3.2 3B can make mistakes and cannot independently verify its medical claims. **Never rely on the app for emergency care, diagnoses or medication decisions.** Seek licensed medical advice. Use fictional data for public demos.
 
@@ -10,10 +10,10 @@
 - **Permanent admin:** Username **`Mr. Doc`**, securely initialized once; **no public admin registration**. Account cannot be disabled by the UI.
 - **User permissions:** Each user sees only their own report and conversation history. Passwords are **Argon2-hashed**, not retrievable by the administrator.
 - **Administrator console:** Manage user account states and view registered profiles, stored report extraction/analysis and conversation histories, with audit logging when opening private content.
-- **Medical assistant:** English/Hindi medical and plain-language explanations, symptoms/causes, general dietary information, foods to consider/limit, and when to seek care.
+- **Medical assistant:** English/Hindi/Marathi/Spanish medical and plain-language explanations, symptoms/causes, general dietary information, foods to consider/limit, and when to seek care.
 - **Report PDF intelligence:** Extracts digitally generated PDF text, parses recognizable tests, compares numeric values **only against printed reference ranges**, explains results via Ollama, and stores extracted content/summaries.
 - **Voice:** Streamlit microphone → local multilingual Faster-Whisper speech-to-text → Ollama → browser text-to-speech. Voice model is downloaded once on first use.
-- **History, insights, account profile and deletion, PDF/TXT summary downloads** (PDF export in English UI, UTF-8 TXT for Hindi), light/dark toggle.
+- **History, insights, account profile and deletion, PDF/TXT summary downloads** (PDF export in English UI, UTF-8 TXT for non-English languages), light/dark toggle.
 - **Futuristic interface:** Holographic 3D-rendered heart illustration, depth-styled cards, glowing visual effects, pulsing orb, designer sidebar, gradient glass layouts, responsive sizing.
 - **No Gemini API keys, no paid model credits.** Ollama is the default and only medical explanation engine.
 
@@ -85,7 +85,7 @@ python -m scripts.init_admin
 
 You should see `Admin setup: created` or `ready`. The initial password is hashed and saved in `instance/healthcare.db`. **Immediately delete the `ADMIN_INITIAL_PASSWORD=...` value from `.env`**, leaving it empty. The admin remains in the database. Changing this environment variable later **does not reset the account**. Keep an encrypted backup of your admin password — no plaintext recovery feature is supplied.
 
-**Admin username:** `Mr. Doc` (exactly, including space and dot). On the home screen open the **Admin Login** tab.
+**Admin username:** `Mr. Doc` (exactly, including space and dot). On the landing page choose **Admin Login** in the designed sidebar.
 
 ### Step D: Check Ollama
 
@@ -130,7 +130,7 @@ They do not create a password for you; admin initialization requires manually ed
 
 ## 4. Quick demonstration
 
-1. Register a fictional user with a valid email format, choose English or Hindi, and read/accept the explicit notice of administrator access to stored health content.
+1. Register a fictional user with a valid email format, choose English, Hindi, Marathi or Spanish, and read/accept the explicit notice of administrator access to stored health content.
 2. Ask the assistant: **"What is Vitamin D deficiency? Define it medically and in simple words, and what foods help?"**
 3. Switch the sidebar to `हिंदी` and ask **"कोलेस्ट्रॉल बढ़ने पर किन चीज़ों को कम खाना चाहिए?"**
 4. Open **Report Analyzer**, upload `docs/sample_report.pdf`, and click Analyze. The sample is **synthetic data** and includes clearly indicated ranges.
@@ -236,15 +236,15 @@ Healthcare-Info-Assistant/
 ├── config/settings.py           # .env-based configuration
 ├── database/models.py           # SQLAlchemy tables
 ├── database/store.py            # privacy-scoped persistence + audit logs
-├── pages/user_views.py          # dashboards, chat, reports, voice, history, settings
-├── pages/admin_views.py         # admin directory, reports, conversations, audit
-├── pages/about_view.py          # about this project, not academic details
+├── views/user_views.py          # dashboards, chat, reports, voice, history, settings
+├── views/admin_views.py         # admin directory, reports, conversations, audit
+├── views/about_view.py          # about this project, not academic details
 ├── services/ollama_service.py   # local chat and report explanations
 ├── services/report_service.py   # PDF extraction and lab comparisons
 ├── services/voice_service.py    # local Faster-Whisper
 ├── services/export_service.py   # PDF summary generation
 ├── ui/components.py             # 3D-inspired visual components + browser speech
-├── ui/strings.py                # English/Hindi interface labels
+├── ui/strings.py                # English/Hindi/Marathi/Spanish interface labels
 ├── assets/heart.webp            # original holographic heart visual
 ├── assets/style.css             # custom visual theme
 ├── docs/sample_report.pdf       # synthetic demo document
@@ -282,3 +282,41 @@ Healthcare-Info-Assistant/
 ---
 
 **Healthcare Info Assistant** — an educational project for understanding health information, with transparent privacy boundaries and a local-first AI workflow.
+
+## Refinement v1.1 — 11 November 2026
+
+This optional patch keeps the original SQLite schema and `instance/healthcare.db` unchanged.
+
+- **Design:** extra 3D-inspired CSS orbit/depth layers, glowing navigation, a dashboard journey guide, refined responsive layouts.
+- **AI:** selectable short/standard/detailed medical answers and optional vegetarian dietary suggestions; clearer Hindi prompting and explicit Ollama error messages. Medical advice remains educational and may be wrong.
+- **Reports:** supports additional *recognizable names* (eGFR, CRP, uric acid, etc.), status-count cards, and repeated-measurement charts limited to the same units. Automated reading remains heuristic and must be checked against the original PDF.
+- **Voice:** automatic language detection option, editable transcription before sending, browser audio playback with speed and stop controls. Speech quality depends on installed OS/browser voices; medical names may transcribe incorrectly.
+- **Admin:** metadata-only private-record listings, per-record explicit consent checks, atomic audit logging for report/conversation opens, profile viewing audit, account-status chart and audit log filters. These controls are designed for a **local demo only**, not production handling of patient medical records.
+- **Maintenance:** replaced deprecated `fitz` imports with `pymupdf`, replaced `use_container_width` with `width="stretch"`, and added regression tests.
+
+For the patch-only installation and backup instructions, see the ZIP's `PATCH_README.md`.
+
+
+## Refinement v1.2 — streamlined navigation and clinical color system
+
+- **Blank page fix:** Internal implementation files moved from Streamlit's special `pages/` directory to `views/`. The Streamlit auto-generated `app`, `user views`, `admin views`, and `about view` sidebar entries are no longer shown. `app.py` alone handles authenticated, role-scoped navigation.
+- **Guest access:** A newly organized sidebar separates **User Portal** (Login, Registration), **Admin Portal** (permanent Mr. Doc login), and **Project** (About). Login forms appear beside the hero instead of three page-level tabs.
+- **Section labels:** Each navigation group has a concise description and a dividing line. The logged-in user and admin menus are also grouped by purpose.
+- **Accessible bilingual controls:** Navigation, access forms, and consent notice display English or Hindi according to the selected language.
+- **Professional healthcare palette:** Calmer deep-navy, clinical teal, soft mint and muted blue palette with accessible input contrasts, refined light mode and restrained 3D glass effects.
+- **No migration required:** Database schema, patient records, administrator login, voice, Ollama and report services have not been changed.
+
+This patch deliberately moves code files and deletes the obsolete `pages/*.py` entrypoints. Always apply it using the bundled patch installer; simply copying new files without removing `pages/*.py` will leave the unwanted default navigation. Existing `.env`, `.venv`, databases and Git settings are not modified.
+
+
+## Refinement v1.3 — multilingual UI, premium sidebar, and clinical light theme
+
+- **Fixed language controls:** Four fully curated application UI language choices: **English / हिन्दी / मराठी / Español**. Language choice is made using radio buttons; users cannot type in an unsupported language. Preferences are stored per user and applied to relevant AI prompts, report summaries and speech-recognition selections.
+- **Localized interface:** Landing, registration, user dashboard, medical chat, report analyzer, result statuses, history, profile and account deletion, administrator, About, warnings, and voice playback labels are translated into each listed language. The **Healthcare Info Assistant** project name and technical brand/model names are intentionally kept unchanged. Uploaded report text, original test names, usernames, earlier saved responses and browser-native controls are not automatically translated.
+- **More premium sidebar:** Increased spacing between Portal, Project, Dashboard and Preferences groups; elegant deep-teal navigation, distinct active actions, teal dividers and gentle depth effects in both themes.
+- **Readable light theme:** Fixed dark text on dark hero and dark sidebar conflicts; using an always-dark teal navigation panel, a dark hero with white headings, and fresh pale clinic-inspired cards and forms. Charts use dynamic dark/light text colors.
+- **No database migration:** Existing accounts, admin password, conversations and reports remain as they are. The patch installer backs up modified code files and never touches `.env`, `.git`, `.venv`, or `instance/`.
+
+**Localization boundaries:** The app authors all visible interface labels in four languages, but browser-provided widget chrome may use the browser's locale, medical laboratory terms may remain in the report's original language, and Llama 3.2 3B does not guarantee fluent medically accurate content in every language. For medical decisions, consult a licensed clinician. Hindi PDF export is not bundled; use the UTF-8 `.txt` export for non-English summaries.
+
+Run `python -m pytest -q` after applying the patch, then restart with `python -m streamlit run app.py`.
