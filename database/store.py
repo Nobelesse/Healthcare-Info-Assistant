@@ -66,11 +66,13 @@ def save_interaction(user_id: int, question: str, response: str, kind="medical")
         return item.id
 
 
-def list_interactions(user_id: int | None = None, limit: int = 100) -> list[dict]:
+def list_interactions(user_id: int, limit: int = 100) -> list[dict]:
+    """User-scoped listing only; never expose all patients with an omitted user ID."""
+    if user_id is None:
+        raise ValueError("A specific user ID is required for private interactions")
     with session_scope() as s:
-        q = select(Interaction).order_by(Interaction.created_at.desc()).limit(limit)
-        if user_id is not None:
-            q = q.where(Interaction.user_id == user_id)
+        q = (select(Interaction).where(Interaction.user_id == user_id)
+             .order_by(Interaction.created_at.desc()).limit(limit))
         return [{"id": x.id, "user_id": x.user_id, "kind": x.kind, "question": x.question,
                  "response": x.response, "created_at": x.created_at} for x in s.scalars(q)]
 
@@ -102,18 +104,21 @@ def _report_dict(r: Report, include_raw: bool) -> dict:
     return obj
 
 
-def list_reports(user_id: int | None = None, limit: int = 100) -> list[dict]:
+def list_reports(user_id: int, limit: int = 100) -> list[dict]:
+    """User-scoped listing only; admin bulk records require audited interfaces."""
+    if user_id is None:
+        raise ValueError("A specific user ID is required for private reports")
     with session_scope() as s:
-        q = select(Report).order_by(Report.created_at.desc()).limit(limit)
-        if user_id is not None:
-            q = q.where(Report.user_id == user_id)
+        q = (select(Report).where(Report.user_id == user_id)
+             .order_by(Report.created_at.desc()).limit(limit))
         return [_report_dict(r, include_raw=False) for r in s.scalars(q)]
 
 
-def get_report(report_id: int, requesting_user_id: int, *, admin=False) -> dict | None:
+def get_report(report_id: int, requesting_user_id: int, *, admin=False,
+               reauth_password: str | None = None) -> dict | None:
     if admin:
-        # Backward-compatible admin call; make it consent-gated and automatically audited.
-        return admin_open_report(requesting_user_id, report_id)
+        # Even the legacy entry point must require password reauthentication.
+        return admin_open_report(requesting_user_id, report_id, reauth_password)
     with session_scope() as s:
         r = s.scalar(select(Report).where(Report.id == report_id,
                                           Report.user_id == requesting_user_id))
@@ -193,6 +198,43 @@ def _authorized_admin(session, actor_id: int) -> bool:
     return bool(actor and actor.role == "admin" and actor.is_active)
 
 
+
+
+def _reauthenticated_admin(session, actor_id: int, password: str | None,
+                           failure_event: str, target_id: int | None = None) -> bool:
+    """Database-level reauthentication prevents direct caller and stale-session bypass.
+
+    Passwords are never logged, cached, written to session_state or returned to
+    the browser. An active administrator must submit the CURRENT secret for each
+    record. No grant token survives a rerun or a new access request.
+    """
+    if not _authorized_admin(session, actor_id):
+        return False
+    from auth.service import verify_password  # lazy import avoids circular imports
+    actor = session.get(User, actor_id)
+    valid = bool(isinstance(password, str) and password and
+                 verify_password(actor.password_hash, password))
+    if not valid:
+        session.add(AuditEvent(actor_id=actor_id, action=failure_event,
+                               target_user_id=None, target_id=target_id))
+    return valid
+
+
+def admin_open_user_profile(actor_id: int, target_user_id: int,
+                            password: str | None = None) -> dict | None:
+    """Reauthentication required before reading a user's private profile fields."""
+    with session_scope() as s:
+        if not _reauthenticated_admin(s, actor_id, password,
+                                      "admin_read_user_profile_denied", target_user_id):
+            return None
+        target = s.get(User, target_user_id)
+        if not target or target.role != 'user' or not target.consented:
+            return None
+        s.add(AuditEvent(actor_id=actor_id, action='admin_read_user_profile',
+                         target_user_id=target.id, target_id=None))
+        return public_user(target)
+
+
 def admin_report_headers(actor_id: int, limit=200) -> list[dict]:
     """Return non-medical metadata only; no names/text or lab results before audited access."""
     with session_scope() as s:
@@ -208,10 +250,10 @@ def admin_report_headers(actor_id: int, limit=200) -> list[dict]:
                  "page_count": r.page_count} for r in rows]
 
 
-def admin_open_report(actor_id: int, report_id: int) -> dict | None:
-    """Consent-gated report read plus audit event in the same DB transaction."""
+def admin_open_report(actor_id: int, report_id: int, password: str | None = None) -> dict | None:
+    """Re-authenticate the admin for THIS read; consent and audit in one transaction."""
     with session_scope() as s:
-        if not _authorized_admin(s, actor_id):
+        if not _reauthenticated_admin(s, actor_id, password, "admin_read_report_denied", report_id):
             return None
         r = s.scalar(select(Report).join(User, User.id == Report.user_id)
                      .where(Report.id == report_id, User.consented.is_(True)))
@@ -236,9 +278,11 @@ def admin_conversation_headers(actor_id: int, limit=150) -> list[dict]:
                  "kind": r.kind} for r in rows]
 
 
-def admin_open_conversation(actor_id: int, interaction_id: int) -> dict | None:
+def admin_open_conversation(actor_id: int, interaction_id: int,
+                            password: str | None = None) -> dict | None:
+    """Return content only on CURRENT correct admin password and user consent."""
     with session_scope() as s:
-        if not _authorized_admin(s, actor_id):
+        if not _reauthenticated_admin(s, actor_id, password, "admin_read_conversation_denied", interaction_id):
             return None
         row = s.scalar(select(Interaction).join(User, User.id == Interaction.user_id)
                        .where(Interaction.id == interaction_id, User.consented.is_(True)))

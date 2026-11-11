@@ -16,7 +16,7 @@ from services.translation_service import display_in_language, preferred_voice_la
 from services.session_flow import active_chat, claim_recording
 from services.export_service import make_english_pdf
 from ui.components import hero, section, metric, feature_card, advisory, speech_button
-from ui.strings import t, local_status, LANGUAGES
+from ui.strings import t, local_status, LANGUAGES, complete_locales
 
 
 def when(value):
@@ -370,8 +370,8 @@ def profile(user,lang):
     st.write(f'**{t("field_username",lang)}:** {user["username"]} · **{t("field_email",lang)}:** {user["email"]}')
     with st.form('profile_edit'):
         name=st.text_input(t('profile_display',lang),value=user['full_name'],max_chars=120)
-        selection=st.radio(t('field_preferred_language',lang),list(LANGUAGES),
-                               index=list(LANGUAGES).index(user['language']) if user['language'] in LANGUAGES else 0,
+        selection=st.selectbox(t('field_preferred_language',lang),complete_locales(),
+                               index=complete_locales().index(user['language']) if user['language'] in complete_locales() else 0,
                                format_func=LANGUAGES.get)
         if st.form_submit_button(t('profile_save',lang)):
             if len(name.strip())<2: st.error(t('profile_short_name',lang))

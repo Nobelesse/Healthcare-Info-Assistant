@@ -42,8 +42,8 @@ def test_admin_headers_hide_medical_content_until_audited_open(sandbox_db):
     assert "Private symptom" not in str(chat_headers)
     assert store.admin_open_report(owner["id"], report_id) is None
     assert store.admin_open_conversation(owner["id"], chat_id) is None
-    assert store.admin_open_report(admin["id"], report_id)["ai_summary"] == "Sensitive summary"
-    assert store.admin_open_conversation(admin["id"], chat_id)["question"] == "Private symptom text"
+    assert store.admin_open_report(admin["id"], report_id, "AdminSecret456789")["ai_summary"] == "Sensitive summary"
+    assert store.admin_open_conversation(admin["id"], chat_id, "AdminSecret456789")["question"] == "Private symptom text"
     events = store.audit_log()
     assert [e["action"] for e in events[:2]] == ["admin_read_conversation", "admin_read_report"]
 

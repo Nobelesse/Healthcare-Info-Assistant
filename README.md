@@ -377,3 +377,61 @@ Run `python -m pytest -q` after applying the patch, then restart with `python -m
 - English spoken responses now default to **1.75×** with 1.25×, 1.5× and 2× choices; other languages retain their previous playback presets. Actual pronunciation speed depends on the browser/system voice installed.
 - Local Ollama requests use a smaller context window for short questions, shorter chat history context, moderate default answer token limits and a longer model keep-alive. Translation prompts were shortened while preserving medical warnings and unchanged source records.
 - These optimizations can reduce waiting but cannot guarantee latency on every computer; first requests and long translations may still take time on 8 GB RAM. Model quality and medical safety remain more important than raw speed.
+
+## Refinement v1.8 — private-record reauthentication and complete UI locales
+
+**Security:** Each time the permanent administrator opens a user's stored
+conversation, report, or private profile, they must type the **current admin
+password** again. The password is verified against the existing Argon2 hash
+at the database-access boundary; it is not stored in the page's session state,
+not printed in audit events, and no authorization grant remains on a later
+rerun. Wrong attempts are logged as denials without private content. A correct
+password alone is not enough if the account is not an active admin or the
+user's consent has been removed. The access-log page displays metadata only.
+
+**All-page interface localization:** The four original built-in locales
+(English, Hindi, Marathi, Spanish) cover all UI labels directly. French,
+German, Japanese, Chinese, Portuguese, Russian, Arabic, Bengali, Tamil, and
+Telugu have partial curated dictionaries. From v1.8 onward, selecting an
+incomplete language attempts a **one-time, entire-application** translation
+pack using your LOCAL Ollama model with a progress indicator, rather than
+silently leaving pages partly in English. If the pack is incomplete, the UI
+does not falsely mark the language switch successful. Valid translation batches
+are saved in `instance/locale_overrides.json` so retrying can resume.
+
+**Important practical limitation:** Full translation-pack preparation can take
+considerable time with Llama 3.2 3B on an 8 GB RAM laptop, and may fail to
+complete on the first pass because local model output may be invalid. You can
+prepare specific languages from the VS Code terminal, while Streamlit is
+stopped, using:
+
+```powershell
+python -m scripts.translate_ui --languages ja zh de fr
+# Or all ten remaining languages (substantial one-time processing):
+python -m scripts.translate_ui --all
+# Inspect remaining untranslated counts without making any Ollama calls:
+python -m scripts.translate_ui --all --dry-run
+```
+
+Restart Streamlit to load the saved language pack. This translation workflow
+passes only **static interface strings** to your local Ollama instance; it
+never sends passwords, users' reports, medical conversations or account details
+for UI translation. Medical AI answers are handled separately by the existing
+per-user, session-private translation service. User-provided input, original
+PDF text and third-party browser/operating-system controls are not guaranteed
+to translate. A medical professional/qualified native speaker should review
+AI-generated medical terminology, consent notices and safety messages before
+real patient use. This is not a clinically validated portal.
+
+**Manual verification:** Login as Mr. Doc. On Conversations, expand a record,
+enter a wrong password and confirm no content appears; retry with the current
+admin password and confirm content appears and a read is logged. Repeat for
+Reports and user Profile details. Switch tabs and verify private details do
+not remain unlocked. Then test the language dropdown: Hindi should work
+immediately on every page; selecting an extra language starts building the
+missing full UI dictionary before the app changes to that locale. Use demo
+records only.
+
+Existing SQLite data, all passwords, `.env`, Git history and downloaded
+models remain unchanged by the v1.8 code-only patch. No database migration is
+needed, and `git init` must not be repeated for an existing repository.

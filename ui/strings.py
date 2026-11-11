@@ -363,6 +363,59 @@ C.update({
         'La traducción no está disponible; se muestra la respuesta original guardada.'),
 })
 
+# Security prompts and one-time language-pack preparation notices.
+C.update({
+    'admin_reauth_prompt': (
+        'Enter admin password again to view private information',
+        'निजी जानकारी देखने के लिए प्रशासक पासवर्ड फिर से दर्ज करें',
+        'खाजगी माहिती पाहण्यासाठी प्रशासकाचा पासवर्ड पुन्हा टाका',
+        'Vuelve a introducir la contraseña de administrador para ver datos privados'),
+    'admin_reauth_help': (
+        'Additional verification: your current administrator password is required for every private record.',
+        'अतिरिक्त पुष्टि: हर निजी रिकॉर्ड खोलने के लिए वर्तमान प्रशासक पासवर्ड ज़रूरी है।',
+        'अतिरिक्त पडताळणी: प्रत्येक खाजगी नोंद पाहण्यासाठी सध्याचा प्रशासक पासवर्ड आवश्यक आहे.',
+        'Verificación adicional: se necesita la contraseña actual de administrador para cada registro privado.'),
+    'admin_reauth_failed': (
+        'Access denied. Check the administrator password and user consent.',
+        'प्रवेश अस्वीकृत। प्रशासक पासवर्ड और उपयोगकर्ता की सहमति जाँचें।',
+        'प्रवेश नाकारला. प्रशासकाचा पासवर्ड आणि वापरकर्त्याची संमती तपासा.',
+        'Acceso denegado. Comprueba la contraseña de administrador y el consentimiento del usuario.'),
+    'event_admin_read_conversation_denied': (
+        'Private conversation access denied', 'निजी बातचीत तक पहुँच अस्वीकृत',
+        'खाजगी संभाषणाचा प्रवेश नाकारला', 'Acceso a conversación privada denegado'),
+    'event_admin_read_report_denied': (
+        'Private report access denied', 'निजी रिपोर्ट तक पहुँच अस्वीकृत',
+        'खाजगी अहवालाचा प्रवेश नाकारला', 'Acceso a informe privado denegado'),
+    'event_admin_read_user_profile_denied': (
+        'Private profile access denied', 'निजी प्रोफ़ाइल तक पहुँच अस्वीकृत',
+        'खाजगी प्रोफाइलचा प्रवेश नाकारला', 'Acceso a perfil privado denegado'),
+    'locale_preparing': (
+        'Preparing full {language} translation for all application screens. This may take time on local Ollama.',
+        'सभी स्क्रीन के लिए {language} अनुवाद तैयार किया जा रहा है। स्थानीय Ollama पर समय लग सकता है।',
+        'सर्व स्क्रीनसाठी {language} भाषांतर तयार होत आहे. स्थानिक Ollama वर वेळ लागू शकतो.',
+        'Preparando la traducción completa al {language} de todas las pantallas. Ollama local puede tardar.'),
+    'locale_progress': (
+        '{complete} of {total} interface labels translated',
+        '{total} में से {complete} इंटरफ़ेस लेबल अनूदित',
+        '{total} पैकी {complete} इंटरफेस लेबले भाषांतरित',
+        '{complete} de {total} etiquetas de interfaz traducidas'),
+    'locale_prepare_failed': (
+        'This language needs a complete local translation pack before switching. Keep Ollama running and retry, or run the command in README.',
+        'भाषा बदलने से पहले पूरा स्थानीय अनुवाद पैक चाहिए। Ollama चालू रखकर फिर प्रयास करें, या README के निर्देश चलाएँ।',
+        'भाषा बदलण्यापूर्वी संपूर्ण स्थानिक भाषांतर पॅक आवश्यक आहे. Ollama सुरू ठेवून पुन्हा प्रयत्न करा, किंवा README मधील कमांड वापरा.',
+        'Este idioma requiere un paquete local completo antes de cambiar. Mantén Ollama activo y reintenta, o ejecuta el comando del README.'),
+    'locale_previous': (
+        'Your earlier language choice needs full-page translation. Select it again to prepare the complete offline pack.',
+        'आपकी पिछली भाषा के लिए सभी पेज का अनुवाद तैयार करना होगा। पूरा ऑफ़लाइन पैक बनाने के लिए उसे फिर चुनें।',
+        'तुमच्या आधीच्या भाषेसाठी सर्व पानांचे भाषांतर आवश्यक आहे. संपूर्ण ऑफलाइन पॅक तयार करण्यासाठी ती पुन्हा निवडा.',
+        'Tu idioma anterior necesita una traducción completa. Selecciónalo de nuevo para preparar el paquete sin conexión.'),
+    'locale_preparation_ready': (
+        'All interface pages are now ready in {language}.',
+        'अब सभी इंटरफ़ेस पेज {language} में उपलब्ध हैं।',
+        'आता सर्व इंटरफेस पाने {language} मध्ये उपलब्ध आहेत.',
+        'Todas las páginas de la interfaz están listas en {language}.'),
+})
+
 from ui.extra_languages import EXTRA_NAMES, EXTRA_TEXT, EXTRA_VOICES
 from functools import lru_cache
 import json
@@ -397,7 +450,18 @@ def locale_coverage(language: str) -> tuple[int, int]:
     overrides = _locale_cache().get(language, {})
     extra = EXTRA_TEXT.get(language, {})
     total = len(C)
-    return sum(1 for key in C if key in extra or (isinstance(overrides, dict) and key in overrides)), total
+    return sum(1 for key in C if key in extra or
+               (isinstance(overrides, dict) and isinstance(overrides.get(key), str)
+                and overrides[key].strip())), total
+
+
+def complete_locales() -> list[str]:
+    """Languages whose entire authored UI catalog is translated.
+
+    Partial locales remain available for preparation, but a successful UI
+    selection must not falsely imply project-wide coverage.
+    """
+    return [code for code in LANGUAGES if locale_coverage(code)[0] == locale_coverage(code)[1]]
 
 
 def reload_locale_cache():

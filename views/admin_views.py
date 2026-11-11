@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from database import store
 from ui.components import section, metric
-from ui.strings import t, event_label
+from ui.strings import t, event_label, LANGUAGES
 from views.user_views import when, _labs_dataframe, _chart_theme
 
 
@@ -39,6 +39,19 @@ def overview(admin,lang):
         st.caption(t('admin_directory_tip',lang))
 
 
+def _admin_access_form(form_id: str, button_key: str, lang: str) -> tuple[bool, str]:
+    """Require a newly entered password for each access; never cache the secret.
+
+    Form submission batches input + action. The result is deliberately ephemeral:
+    a subsequent rerun (language change, navigation, logout) hides medical data.
+    """
+    with st.form(form_id, clear_on_submit=True):
+        password = st.text_input(t('admin_reauth_prompt',lang), type='password',
+                                 autocomplete='current-password')
+        submitted = st.form_submit_button('🔐 '+t(button_key,lang))
+    return submitted, password
+
+
 def users(admin,lang):
     section(t('admin_user_directory',lang),t('admin_user_directory_desc',lang),t('admin_directory_overline',lang))
     term=st.text_input(t('admin_search',lang),placeholder=t('admin_search_hint',lang))
@@ -47,16 +60,19 @@ def users(admin,lang):
     for user in found[:80]:
         uid=user['id']
         with st.expander(f'{"🟢" if user["is_active"] else "🔴"} @{user["username"]} · #{uid}'):
-            if st.button(t('admin_view_profile',lang),key=f'profile_{uid}'):
-                store.record_audit(admin['id'],'admin_read_user_profile',uid)
-                st.session_state[f'admin_profile_{uid}']=True
-            if st.session_state.get(f'admin_profile_{uid}'):
-                st.write(f'**{t("field_full_name",lang)}:** {user["full_name"]}')
-                st.write(f'**{t("field_email",lang)}:** {user["email"]}')
-                st.write(f'**{t("admin_preferred_lang",lang)}:** {user["language"].upper()}')
-                st.write(f'**{t("admin_consent",lang)}:** {t("admin_yes",lang) if user["consented"] else t("admin_no",lang)}')
-                st.write(f'**{t("admin_joined",lang)}:** {when(user["created_at"])}')
-                st.write(f'**{t("admin_last_login",lang)}:** {when(user["last_login_at"])}')
+            st.caption(t('admin_reauth_help',lang))
+            submitted, password = _admin_access_form(f'admin_profile_gate_{uid}', 'admin_view_profile', lang)
+            if submitted:
+                detail = store.admin_open_user_profile(admin['id'], uid, password)
+                if detail:
+                    st.write(f'**{t("field_full_name",lang)}:** {detail["full_name"]}')
+                    st.write(f'**{t("field_email",lang)}:** {detail["email"]}')
+                    st.write(f'**{t("admin_preferred_lang",lang)}:** {LANGUAGES.get(detail["language"],detail["language"])}')
+                    st.write(f'**{t("admin_consent",lang)}:** {t("admin_yes",lang) if detail["consented"] else t("admin_no",lang)}')
+                    st.write(f'**{t("admin_joined",lang)}:** {when(detail["created_at"])}')
+                    st.write(f'**{t("admin_last_login",lang)}:** {when(detail["last_login_at"])}')
+                else:
+                    st.error(t('admin_reauth_failed',lang))
             st.write(f'**{t("admin_account",lang)}:** {t("admin_active",lang) if user["is_active"] else t("admin_disabled",lang)}')
             if st.button(t('admin_deactivate',lang) if user['is_active'] else t('admin_reactivate',lang),
                          key=f'status_{uid}'):
@@ -74,17 +90,18 @@ def reports(admin,lang):
         header=t('admin_report_header',lang,id=rid,user=entry['user_id'],date=when(entry['created_at']))
         with st.expander('📄 '+header):
             st.caption(t('admin_report_pages',lang,pages=entry['page_count']))
-            if st.button('🔒 '+t('admin_open_report',lang),key=f'admin_report_{rid}'):
-                detail=store.admin_open_report(admin['id'],rid)
-                if detail: st.session_state[f'admin_open_report_{rid}']=detail
-                else: st.error(t('admin_no_consent',lang))
-            detail=st.session_state.get(f'admin_open_report_{rid}')
-            if detail:
-                st.write(f'**{t("admin_file",lang)}:** {detail["filename"]}')
-                _labs_dataframe(detail['labs'],lang)
-                st.markdown(detail['ai_summary'])
-                with st.expander(t('admin_extracted',lang)):
-                    st.text(detail['extracted_text'])
+            st.caption(t('admin_reauth_help',lang))
+            submitted, password = _admin_access_form(f'admin_report_gate_{rid}', 'admin_open_report', lang)
+            if submitted:
+                detail=store.admin_open_report(admin['id'],rid,password)
+                if detail:
+                    st.write(f'**{t("admin_file",lang)}:** {detail["filename"]}')
+                    _labs_dataframe(detail['labs'],lang)
+                    st.markdown(detail['ai_summary'])
+                    with st.expander(t('admin_extracted',lang)):
+                        st.text(detail['extracted_text'])
+                else:
+                    st.error(t('admin_reauth_failed',lang))
 
 
 def conversations(admin,lang):
@@ -95,14 +112,15 @@ def conversations(admin,lang):
         cid=entry['id']
         label=t('admin_chat_header',lang,id=cid,user=entry['user_id'],date=when(entry['created_at']))
         with st.expander(('🎙 ' if entry['kind']=='voice' else '💬 ')+label):
-            if st.button('🔒 '+t('admin_open_chat',lang),key=f'admin_chat_{cid}'):
-                detail=store.admin_open_conversation(admin['id'],cid)
-                if detail: st.session_state[f'admin_open_chat_{cid}']=detail
-                else: st.error(t('admin_no_consent',lang))
-            detail=st.session_state.get(f'admin_open_chat_{cid}')
-            if detail:
-                st.markdown('**'+t('history_question',lang)+'**');st.write(detail['question'])
-                st.markdown('**'+t('history_answer',lang)+'**');st.markdown(detail['response'])
+            st.caption(t('admin_reauth_help',lang))
+            submitted, password = _admin_access_form(f'admin_chat_gate_{cid}', 'admin_open_chat', lang)
+            if submitted:
+                detail=store.admin_open_conversation(admin['id'],cid,password)
+                if detail:
+                    st.markdown('**'+t('history_question',lang)+'**');st.write(detail['question'])
+                    st.markdown('**'+t('history_answer',lang)+'**');st.markdown(detail['response'])
+                else:
+                    st.error(t('admin_reauth_failed',lang))
 
 
 def audit(admin,lang):

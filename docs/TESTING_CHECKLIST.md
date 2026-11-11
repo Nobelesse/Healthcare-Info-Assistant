@@ -39,3 +39,15 @@
 - [ ] Change an account's active status and verify it is reflected in the admin dashboard.
 - [ ] Run `python -m pytest -q` and `python -m scripts.doctor`.
 - [ ] Verify `.env`, `instance/`, database files, medical uploads and local Whisper models are **not** staged with Git.
+
+## v1.8 — manual security and locale checks
+
+- [ ] Admin conversation: wrong/blank password denies the read.
+- [ ] Admin conversation: correct password opens exactly the requested record, with an audit entry.
+- [ ] Admin report and user profile: same current-password check before private fields are shown.
+- [ ] After rerun/navigation, a previous successful read is not retained on the screen.
+- [ ] Registered user cannot invoke an admin open using even the real admin password.
+- [ ] Hindi/Marathi/Spanish: every authored UI label on all pages is translated.
+- [ ] Japanese/French/Chinese and other added languages: first switch prepares full local pack; no false success while incomplete.
+- [ ] Changing language updates admin, reports, chat, voice, history, and About; user data and source medical values are not silently modified.
+- [ ] Instance/locales, .env, database and Git remain unchanged during patch installation.

@@ -12,7 +12,8 @@ def test_user_cannot_read_or_delete_someone_elses_report(sandbox_db):
     assert store.get_report(rid,b["id"],admin=True) is None  # user cannot claim admin access
     bootstrap_admin("AdminSecret456789")
     administrator = login("Mr. Doc", "AdminSecret456789", role="admin")
-    assert store.get_report(rid, administrator["id"], admin=True)["extracted_text"].startswith("Vitamin D")
+    assert store.get_report(rid, administrator["id"], admin=True) is None  # password re-check required
+    assert store.get_report(rid, administrator["id"], admin=True, reauth_password="AdminSecret456789")["extracted_text"].startswith("Vitamin D")
 
 
 def test_user_cannot_delete_other_users_conversation(sandbox_db):

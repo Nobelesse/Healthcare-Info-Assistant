@@ -180,5 +180,41 @@ CORE.update({
 ],
 })
 
+CORE.update({
+'admin_reauth_prompt': [
+    'Saisissez à nouveau le mot de passe administrateur pour accéder aux données privées',
+    'Administratorpasswort erneut eingeben, um private Daten anzuzeigen',
+    '個人情報を表示するには管理者パスワードを再入力してください',
+    '再次输入管理员密码以查看私人信息',
+    'Introduza novamente a palavra-passe do administrador para ver dados privados',
+    'Повторно введите пароль администратора для просмотра личных данных',
+    'أعد إدخال كلمة مرور المسؤول لعرض المعلومات الخاصة',
+    'ব্যক্তিগত তথ্য দেখতে প্রশাসকের পাসওয়ার্ড আবার লিখুন',
+    'தனிப்பட்ட தகவல்களைப் பார்க்க நிர்வாகியின் கடவுச்சொல்லை மீண்டும் உள்ளிடவும்',
+    'ప్రైవేట్ సమాచారం చూడటానికి నిర్వాహకుడి పాస్‌వర్డ్‌ను మళ్లీ నమోదు చేయండి'],
+'admin_reauth_failed': [
+    'Accès refusé. Vérifiez le mot de passe administrateur et le consentement.',
+    'Zugriff verweigert. Administratorpasswort und Einwilligung prüfen.',
+    'アクセス拒否。管理者パスワードとユーザーの同意を確認してください。',
+    '访问被拒绝。请检查管理员密码和用户同意情况。',
+    'Acesso negado. Verifique a palavra-passe do administrador e o consentimento.',
+    'Доступ запрещён. Проверьте пароль администратора и согласие пользователя.',
+    'تم رفض الوصول. تحقق من كلمة مرور المسؤول وموافقة المستخدم.',
+    'প্রবেশ প্রত্যাখ্যাত। প্রশাসকের পাসওয়ার্ড এবং ব্যবহারকারীর সম্মতি যাচাই করুন।',
+    'அணுகல் மறுக்கப்பட்டது. நிர்வாகி கடவுச்சொல்லையும் பயனர் ஒப்புதலையும் சரிபார்க்கவும்.',
+    'యాక్సెస్ నిరాకరించబడింది. నిర్వాహకుడి పాస్‌వర్డ్ మరియు వినియోగదారు సమ్మతిని తనిఖీ చేయండి.'],
+'admin_reauth_help': [
+    'Chaque dossier privé nécessite une nouvelle vérification du mot de passe administrateur.',
+    'Für jeden privaten Datensatz muss das Administratorpasswort erneut eingegeben werden.',
+    '個人記録を開くたびに管理者パスワードの確認が必要です。',
+    '每次打开私人记录都需要重新验证管理员密码。',
+    'Cada registo privado requer nova confirmação da palavra-passe do administrador.',
+    'Для каждой личной записи необходимо снова подтвердить пароль администратора.',
+    'كل سجل خاص يتطلب إعادة التحقق من كلمة مرور المسؤول.',
+    'প্রতিটি ব্যক্তিগত রেকর্ড খুলতে প্রশাসকের পাসওয়ার্ড আবার যাচাই করতে হবে।',
+    'ஒவ்வொரு தனிப்பட்ட பதிவிற்கும் நிர்வாகி கடவுச்சொல்லை மீண்டும் உறுதிப்படுத்த வேண்டும்.',
+    'ప్రతి ప్రైవేట్ రికార్డుకు నిర్వాహకుడి పాస్‌వర్డ్‌ను మళ్లీ ధృవీకరించాలి.'],
+})
+
 EXTRA_TEXT = {code: {key: values[idx] for key,values in CORE.items()}
               for idx,code in enumerate(_KEYS)}
