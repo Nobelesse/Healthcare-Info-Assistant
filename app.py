@@ -14,6 +14,7 @@ from ui.components import inject_css, brand, sidebar_user, footer, hero, section
 from ui.strings import t, LANGUAGES, supported, locale_coverage, complete_locales, reload_locale_cache
 from views import user_views, admin_views
 from views.about_view import about_page
+from ui.v2_strings import v2t
 
 st.set_page_config(
     page_title="Healthcare Info Assistant | Medical AI",
@@ -292,12 +293,12 @@ def sidebar(user, lang, admin=False):
             groups = [
                 ("sidebar_workspace", "sidebar_workspace_help", [("home", "⌂")]),
                 ("sidebar_assistance", "sidebar_assistance_help", [("chat", "◎"), ("reports", "▤"), ("voice", "♬")]),
-                ("sidebar_your_health", "sidebar_your_health_help", [("history", "◷"), ("insights", "▥"), ("profile", "♙")]),
+                ("sidebar_your_health", "sidebar_your_health_help", [("history", "◷"), ("insights", "▥"), ("offline", "◉"), ("profile", "♙")]),
             ]
         for title_key, desc_key, options in groups:
             _sidebar_heading(t(title_key, lang), t(desc_key, lang))
             for page, icon in options:
-                _nav_button(page, icon, t(page, lang))
+                _nav_button(page, icon, v2t('offline_heading',lang) if page=='offline' else t(page, lang))
         _sidebar_heading(t("sidebar_project", lang), t("sidebar_project_help", lang))
         _nav_button("about", "ⓘ", t("about", lang))
         _sidebar_preferences(lang, guest=False, user=user, admin=admin)
@@ -339,7 +340,7 @@ def authenticated():
             "home": user_views.dashboard, "chat": user_views.chat,
             "reports": user_views.report_analyzer, "voice": user_views.voice_assistant,
             "history": user_views.history, "insights": user_views.insights,
-            "profile": user_views.profile,
+            "offline": user_views.offline_readiness, "profile": user_views.profile,
         }
     if page == "about":
         about_page(lang)

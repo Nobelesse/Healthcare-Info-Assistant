@@ -5,6 +5,9 @@ from database import store
 from ui.components import section, metric
 from ui.strings import t, event_label, LANGUAGES
 from views.user_views import when, _labs_dataframe, _chart_theme
+from ui.v2_strings import v2t
+from services.secure_backup import encrypt_database
+from auth.service import confirm_password
 
 
 def overview(admin,lang):
@@ -37,6 +40,28 @@ def overview(admin,lang):
                          hide_index=True,width='stretch')
         else: st.info(t('admin_no_users',lang))
         st.caption(t('admin_directory_tip',lang))
+    with st.expander('🔐 '+v2t('backup_heading',lang)):
+        st.caption(v2t('backup_info',lang))
+        with st.form('v20_backup_form',clear_on_submit=True):
+            verify=st.text_input(t('admin_reauth_prompt',lang),type='password')
+            secret=st.text_input(v2t('backup_passphrase',lang),type='password')
+            secret2=st.text_input(v2t('backup_confirm',lang),type='password')
+            submit=st.form_submit_button(v2t('backup_create',lang))
+        if submit:
+            if not confirm_password(admin['id'],verify):
+                store.record_audit(admin['id'],'admin_backup_denied')
+                st.error(t('admin_reauth_failed',lang))
+            elif secret!=secret2 or len(secret)<12:
+                st.error(v2t('backup_bad_password',lang))
+            else:
+                try:
+                    snapshot=encrypt_database(secret)
+                    store.record_audit(admin['id'],'admin_encrypted_backup_created')
+                    st.download_button('⬇ '+v2t('backup_download',lang),snapshot,
+                      file_name='healthcare-private-backup.hiaenc',
+                      mime='application/octet-stream',key='v20_backup_download')
+                except ValueError:
+                    st.error(v2t('backup_failed',lang))
 
 
 def _admin_access_form(form_id: str, button_key: str, lang: str) -> tuple[bool, str]:

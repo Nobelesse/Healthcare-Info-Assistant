@@ -61,3 +61,17 @@
 - [ ] In light theme, text and buttons remain readable; in dark theme, 3D glow remains subtle.
 - [ ] On narrow/mobile windows, card content stays readable and buttons stay reachable.
 - [ ] About Project cards and user/admin data remain unchanged.
+
+## v2.0 manual offline and privacy checks
+
+- [ ] Stop internet/Wi-Fi **after** Ollama model and Whisper downloads; verify AI chat is local.
+- [ ] Ask about vitamin D and cholesterol; ensure offline source titles appear and no source is invented.
+- [ ] Check that text appears progressively during a normal Ollama chat answer.
+- [ ] Compare two sample reports with the same test and unit; verify changes and the CSV locally.
+- [ ] Compare reports with different units, duplicate same-test rows or missing values; app must not guess.
+- [ ] With OCR disabled, PNG/JPG upload must be rejected; enable only after installing local OCR.
+- [ ] Verify the Offline Readiness page with Ollama stopped and running, and in Hindi / another selected locale.
+- [ ] Admin must re-enter correct password to create encrypted backup. Wrong password is denied.
+- [ ] Encrypted `.hiaenc` must not show plaintext patient data. Restore to NEW filename and validate records.
+- [ ] Confirm `instance/healthcare.db`, `.env`, `.git`, registered users and saved history were not modified by patch.
+- [ ] Confirm language packs/voice playback for the target language are usable **with Wi-Fi off**.

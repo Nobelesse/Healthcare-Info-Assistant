@@ -76,6 +76,32 @@ def _optional_ocr(page) -> str:
         return ""
 
 
+def extract_image(data: bytes) -> tuple[str, int]:
+    """Use local Tesseract on an image. No cloud OCR and no saved raw upload."""
+    if not ENABLE_OCR:
+        raise ReportError('Image OCR is optional: set ENABLE_OCR=true, install Tesseract and requirements-ocr.txt.')
+    if not data or len(data)>MAX_REPORT_BYTES:
+        raise ReportError('Image is empty or larger than 10 MB.')
+    try:
+        from PIL import Image, UnidentifiedImageError
+        import pytesseract
+        img=Image.open(io.BytesIO(data))
+        if img.format not in {'PNG','JPEG'}:
+            raise ReportError('Supported report images: PNG and JPEG only.')
+        if img.width*img.height>18_000_000:
+            raise ReportError('Image is too large for safe OCR.')
+        if TESSERACT_CMD:
+            pytesseract.pytesseract.tesseract_cmd=TESSERACT_CMD
+        text=pytesseract.image_to_string(img.convert('RGB'),lang='eng')
+    except ReportError:
+        raise
+    except Exception as exc:
+        raise ReportError('Local image OCR unavailable or image unreadable. Install Tesseract OCR.') from exc
+    if len(text.strip())<20:
+        raise ReportError('OCR found too little readable text. Try a clearer image.')
+    return text[:MAX_REPORT_CHARS],1
+
+
 def extract_pdf(data: bytes) -> tuple[str, int]:
     if not data or len(data) > MAX_REPORT_BYTES:
         raise ReportError("PDF must be between 1 byte and 10 MB.")

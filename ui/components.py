@@ -27,7 +27,7 @@ def brand(lang='en'):
     # Project name remains in English for all locales by explicit user request.
     st.markdown(f'''<div class="brand"><div class="brand-icon">♡</div><div>
       <div class="brand-title">Healthcare<br>Info Assistant</div>
-      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.6</span></div>
+      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V2.0</span></div>
       </div></div><div class="brand-line"></div>''', unsafe_allow_html=True)
 
 

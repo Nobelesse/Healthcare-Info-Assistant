@@ -450,3 +450,53 @@ For medium-size windows, cards reserve additional height for longer translated
 labels. On narrow phones, they grow naturally when stacked so translated text
 is not intentionally truncated. As with other CSS changes, restart Streamlit
 and use `Ctrl+Shift+R` to clear cached styles before reviewing on Windows.
+
+---
+## Version 2.0 — offline-first upgrade (applies over v1.9)
+
+**Privacy and scope:** this is educational local software, not a clinical decision support system. The bundled reference library is a *small, curated snapshot*, not a complete or constantly updated database of diseases. Llama 3.2 3B may hallucinate or translate medical terms incorrectly. Never diagnose, prescribe or interpret emergencies solely from its responses.
+
+### What was added
+
+1. **Locally bundled medical evidence notes:** Eight selected topics (cholesterol, vitamin D, iron deficiency, B12, diabetes/A1c, thyroid/TSH, hypertension, and kidney/eGFR). The assistant injects a short, relevant *local* summary in the Ollama prompt and the chat shows traceable source titles/URLs. References are packaged in `data/medical_knowledge.json`; the URLs are bibliographic, and clicking them requires internet. The app does not fetch those URLs while answering.
+2. **Streaming Ollama chat:** Chat responses appear chunk-by-chunk from the local model, for faster *perceived* response time. Actual generation time still depends on device hardware. Reports and voice retain their existing non-streaming safety path.
+3. **Two-report comparison:** In Health Insights, pick two previously saved reports. Only uniquely identified tests with identical names and units are compared. Differences are arithmetic only; never diagnose from trends. The dates are **upload dates**, not lab collection dates. Comparison CSV stays local. No unit conversion and no patient data sent externally.
+4. **Optional local OCR for medical-report images:** PNG/JPEG accepted in the analyzer when `ENABLE_OCR=true`, `pytesseract` is installed and a Tesseract OCR binary is present. Existing PDF handling and optional scanned-PDF OCR remain unchanged. OCR can misread numbers: verify every original lab value.
+5. **Offline readiness page:** User sidebar shows local Ollama model status, bundled notes, advisory Whisper cache status and optional Tesseract status. All checks use local resources. Absence of Whisper in the standard cache is advisory; custom download caches may work.
+6. **Encrypted offline backup:** In the admin Overview page, re-enter the admin password and a *new independent* 12+ character backup passphrase. Download an AES-256-GCM password-protected `.hiaenc` copy of the SQLite database. The exported backup is encrypted; **the active `instance/healthcare.db` remains plaintext**. The administrator should protect both the original records and backup file, and should not put backups on a public GitHub repository.
+
+### Prepare the laptop for offline use (internet needed once)
+
+Run in the **existing** v2.0 project directory (the example below uses the project owner's E: drive):
+
+```powershell
+cd "E:\Projects\Healthcare-Info-Assistant"
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m scripts.prepare_offline --download
+python -m scripts.prepare_offline
+python -m pytest -q
+python -m streamlit run app.py
+```
+
+The optional OCR feature needs an installed **local Tesseract OCR executable**, `python -m pip install -r requirements-ocr.txt`, and `ENABLE_OCR=true` in `.env`. If Tesseract is not discoverable via PATH, set `TESSERACT_CMD` in `.env` to its executable path. **OCR is optional; do not enable it without installing its dependencies.**
+
+Speech-to-text uses Faster-Whisper locally after download. Text-to-speech currently uses the browser's speechSynthesis interface, which depends on voice models installed on each computer. Some Windows/browser voices may still require internet or not exist for a selected language. Additional UI language packs are built by local Ollama; pre-generate required languages while you have time. Do not claim *every* language is guaranteed offline until the chosen speech/translation models have been downloaded and tested with Wi-Fi disabled.
+
+### Restore an encrypted backup safely
+
+**Do not perform restore while Streamlit is running.** Restoring via the provided script creates a new SQLite file; it NEVER overwrites the active user database. Inspect and separately archive the existing database before considering any manual swap.
+
+```powershell
+python -m scripts.restore_backup --input "C:\path\to\healthcare-private-backup.hiaenc" --output "E:\Projects\restored_healthcare_copy.db"
+```
+
+The script prompts for the independent backup passphrase. There is no recovery if it is lost. The backup contains all users, report texts and private history: store it only in a secure place.
+
+### No database migration
+
+This patch changes code, static references, tests and dependencies. It does **not** initialize another admin, touch `.env`, replace your existing SQLite database, delete history or change the Git remote. Use the supplied patch installer with `--dry-run` first. No new Ollama model is required beyond `llama3.2:latest`.
+
+### Offline reference bibliography (reviewed 2026-11-12)
+
+The short note library paraphrases selected pages of U.S. National Library of Medicine **MedlinePlus**: `cholesterollevelswhatyouneedtoknow.html`, `vitaminddeficiency.html`, `ency/article/000584.htm`, `ency/article/000574.htm`, `lab-tests/hemoglobin-a1c-hba1c-test/`, `lab-tests/tsh-thyroid-stimulating-hormone-test/`, `ency/article/007483.htm`, and `lab-tests/estimated-glomerular-filtration-rate-egfr-and-gfr-tests/`. Full URLs are included in `data/medical_knowledge.json`. This snapshot cannot receive medical updates without installing a later reviewed bundle.

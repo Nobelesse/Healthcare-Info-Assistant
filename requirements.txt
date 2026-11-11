@@ -11,3 +11,5 @@ reportlab>=4.2,<5
 faster-whisper>=1.1,<2
 Pillow>=10.4,<13
 pytest>=8.2,<10
+# Offline AES-256-GCM encrypted SQLite backup exports (v2.0)
+cryptography>=42,<47

@@ -7,14 +7,18 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from auth.service import AuthError, change_password, confirm_password
-from config.settings import MAX_REPORT_BYTES
+from config.settings import MAX_REPORT_BYTES, ENABLE_OCR
 from database import store
 from services.ollama_service import medical_answer, report_answer, emergency_notice, OllamaUnavailable, check_ollama
-from services.report_service import extract_pdf, analyze_labs, ReportError, clean_filename
+from services.report_service import extract_pdf, extract_image, analyze_labs, ReportError, clean_filename
 from services.voice_service import transcribe_audio_with_language, VoiceError
 from services.translation_service import display_in_language, preferred_voice_language, voice_display_language
 from services.session_flow import active_chat, claim_recording
 from services.export_service import make_english_pdf
+from services.knowledge_service import search_knowledge
+from services.comparison_service import compare_reports
+from services.offline_status import inspect_offline
+from ui.v2_strings import v2t
 from ui.components import hero, section, metric, feature_card, advisory, speech_button
 from ui.strings import t, local_status, LANGUAGES, complete_locales
 
@@ -94,6 +98,14 @@ def chat(user,lang):
         with st.chat_message('assistant',avatar='🩺'):
             if not translated: st.caption('🌐 '+t('translation_unavailable',lang))
             st.markdown(display_answer)
+        notes=search_knowledge(item['question'])
+        if notes:
+            with st.expander('📚 '+v2t('sources',lang)):
+                st.caption(v2t('source_note',lang))
+                for source in notes:
+                    st.markdown(f'**{source["title"]}** — {source["source_title"]}')
+                    if lang=='en': st.caption(source['summary'])
+                    st.caption(source['source_url'])
         localized_last = (display_answer, translated)
     if localized_last:
         # Speak the language of the DISPLAYED text, never an old English reply.
@@ -106,8 +118,10 @@ def chat(user,lang):
             medical.append({'question':prompt,'response':urgent,'language':lang})
             st.rerun()
         try:
-            with st.spinner(t('chat_wait',lang)):
-                response=medical_answer(prompt,lang,medical,detail,'vegetarian' if diet else 'any')
+            # Stream only the current reply; previous private chat remains user-session scoped.
+            with st.chat_message('assistant',avatar='🩺'):
+                response=st.write_stream(medical_answer(prompt,lang,medical,detail,
+                    'vegetarian' if diet else 'any',stream=True))
             store.save_interaction(user['id'],prompt,response)
             medical.append({'question':prompt,'response':response,'language':lang})
             st.rerun()
@@ -149,14 +163,21 @@ def report_analyzer(user,lang):
     advisory(lang)
     st.markdown(f'<div class="glass-panel report-intro"><b>📄 {escape(t("reports_intro_title",lang))}</b>'
                 f'<p>{escape(t("reports_intro_desc",lang))}</p></div>',unsafe_allow_html=True)
-    upload=st.file_uploader(t('reports_upload',lang),type=['pdf'],accept_multiple_files=False)
+    upload=st.file_uploader(t('reports_upload',lang),type=['pdf','png','jpg','jpeg'],accept_multiple_files=False)
     st.caption(t('reports_consent_note',lang))
     if upload is not None:
         if upload.size>MAX_REPORT_BYTES: st.error(t('reports_oversize',lang))
-        elif st.button('✦ '+t('reports_analyze',lang),type='primary'):
+        else:
+            image_needs_ocr = upload.name.lower().endswith(('.png','.jpg','.jpeg')) and not ENABLE_OCR
+            if image_needs_ocr: st.warning(v2t('ocr_setup',lang))
+            analyze_clicked = st.button('✦ '+t('reports_analyze',lang),type='primary',disabled=image_needs_ocr)
+        if upload.size<=MAX_REPORT_BYTES and analyze_clicked:
             try:
                 with st.spinner(t('reports_extracting',lang)):
-                    extracted,pages=extract_pdf(upload.getvalue())
+                    if upload.name.lower().endswith('.pdf'):
+                        extracted,pages=extract_pdf(upload.getvalue())
+                    else:
+                        extracted,pages=extract_image(upload.getvalue())
                     labs=analyze_labs(extracted)
                 st.success(t('reports_parsed',lang,pages=pages,count=len(labs)))
                 _labs_dataframe(labs,lang)
@@ -365,7 +386,48 @@ def insights(user,lang):
             fig.update_layout(height=280,yaxis_title=next(iter(units)),**palette)
             st.plotly_chart(fig,width='stretch',config={'displayModeBar':False})
             st.caption(t('insights_chart_note',lang))
+    if len(reports) >= 2:
+        with st.expander('📈 '+v2t('compare_heading',lang)):
+            st.caption(v2t('compare_explain',lang))
+            options=list(range(len(reports)))
+            labels=lambda i:f'#{reports[i]["id"]} · {reports[i]["filename"]} · {when(reports[i]["created_at"])}'
+            left,right=st.columns(2)
+            with left:
+                index_a=st.selectbox(v2t('earlier',lang),options,index=1,format_func=labels,key='v2_earlier')
+            with right:
+                index_b=st.selectbox(v2t('later',lang),options,index=0,format_func=labels,key='v2_later')
+            if index_a==index_b:
+                st.info(v2t('choose_distinct',lang))
+            else:
+                rows=compare_reports(reports[index_a],reports[index_b])
+                if rows:
+                    df=pd.DataFrame(rows)
+                    df=df.rename(columns={'name':v2t('test',lang),'unit':v2t('unit',lang),
+                         'earlier':v2t('earlier_result',lang),'later':v2t('later_result',lang),
+                         'change':v2t('difference',lang),'earlier_status':v2t('earlier_status',lang),
+                         'later_status':v2t('later_status',lang)})
+                    st.dataframe(df,hide_index=True,width='stretch')
+                    st.download_button('⬇ CSV',df.to_csv(index=False).encode('utf-8-sig'),
+                        'healthcare_comparison.csv',mime='text/csv',key='v2_compare_csv')
+                else:
+                    st.info(v2t('no_comparable_tests',lang))
+            st.caption(v2t('compare_warning',lang))
     st.warning(t('insights_warning',lang))
+
+
+def offline_readiness(lang):
+    section(v2t('offline_heading',lang),v2t('offline_intro',lang),'◉')
+    status=inspect_offline()
+    lines=[('local_ollama',status['ollama_local']),
+           ('model_ready',status['ollama_model_ready']),
+           ('knowledge_ready',status['knowledge_packaged']),
+           ('whisper_ready',status['whisper_cache_detected'] and status['whisper_installed']),
+           ('ocr_ready',status['ocr_enabled'] and status['tesseract_found'])]
+    for key,ready in lines:
+        st.markdown(('✅ ' if ready else '⚪ ')+v2t(key,lang))
+    st.info(v2t('offline_disclaimer',lang))
+    st.caption(status['ollama_message'])
+    advisory(lang)
 
 
 def profile(user,lang):
