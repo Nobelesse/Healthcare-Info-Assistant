@@ -1,0 +1,30 @@
+# Personal health data, secrets and local credentials — NEVER publish
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+instance/
+private/
+user_uploads/
+reports/
+*.pdf
+!docs/sample_report.pdf
+# Caches, models, local runtimes
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.py[cod]
+.streamlit/secrets.toml
+.idea/
+.vscode/settings.local.json
+.DS_Store
+*.log
+*.wav
+*.mp3
+.huggingface/

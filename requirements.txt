@@ -1,0 +1,13 @@
+# Tested design target: Python 3.11 on Windows 10/11
+streamlit>=1.42,<2
+SQLAlchemy>=2.0,<3
+argon2-cffi>=23.1,<26
+python-dotenv>=1.0,<2
+httpx>=0.27,<1
+PyMuPDF>=1.24,<2
+pandas>=2.1,<3
+plotly>=5.22,<7
+reportlab>=4.2,<5
+faster-whisper>=1.1,<2
+Pillow>=10.4,<13
+pytest>=8.2,<10
