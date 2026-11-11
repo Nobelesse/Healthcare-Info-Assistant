@@ -841,3 +841,67 @@ button[kind="primary"],.stButton button[kind="primary"],.stFormSubmitButton butt
 @media(prefers-reduced-motion:reduce){
   .stApp .voice-orb,.stApp .voice-ring{animation:none!important;}
 }
+
+
+/* ========================================================================
+   v1.7 — clear hero typography, larger contained anatomical heart and orbit.
+   The earlier grid came from .hero::before; remove it rather than overlaying.
+   Heart sits BEHIND the text with a gentle contrast veil, not on top of it.
+   ======================================================================== */
+.stApp .hero::before,
+.stApp:has(#theme-light-marker) [data-testid="stMain"] .hero::before {
+  content:none !important;display:none !important;background:none !important;
+}
+.stApp .hero.hero-auth .hero-visual {
+  right:-2% !important;top:0% !important;width:59% !important;height:100% !important;
+  opacity:.94 !important;z-index:1 !important;overflow:visible !important;
+}
+.stApp .hero:not(.hero-auth) .hero-visual {
+  right:-1% !important;top:1% !important;width:55% !important;height:98% !important;
+  opacity:.94 !important;z-index:1 !important;overflow:visible !important;
+}
+.stApp .hero .heart-float {width:100% !important;max-width:410px !important;}
+.stApp .hero .hero-img {width:100% !important;max-height:398px !important;}
+.stApp .hero .hero-orbit-outer {width:72% !important;max-width:305px !important;}
+.stApp .hero .hero-orbit-inner {width:52% !important;max-width:220px !important;}
+.stApp .hero.hero-auth .hero-copy {max-width:77% !important;z-index:2;}
+.stApp .hero:not(.hero-auth) .hero-copy {max-width:73% !important;z-index:2;}
+.stApp .hero.hero-auth h1 {text-shadow:0 3px 20px rgba(2,29,43,.43);}
+.stApp .hero.hero-auth .hero-copy::before {
+  inset:-12px -35px -12px -14px;
+  background:linear-gradient(90deg,rgba(8,39,57,.98) 0%,rgba(8,39,57,.82) 58%,rgba(8,39,57,.30) 84%,transparent 100%);
+  filter:blur(15px);
+}
+.stApp:has(#theme-light-marker) [data-testid="stMain"] .hero.hero-auth .hero-copy::before {
+  background:linear-gradient(90deg,rgba(244,255,252,.97),rgba(240,251,247,.83) 60%,rgba(240,251,247,.20) 88%,transparent);
+}
+/* Separate profile and logout, and center the latter inside its column. */
+.stApp [data-testid="stSidebar"] .sidebar-logout-gap {height:18px;margin:0;}
+.stApp [data-testid="stSidebar"] .profile-glass {margin-bottom:5px !important;}
+.stApp [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]:has(.st-key-logout) {
+  padding:1px 2px 12px !important;align-items:center;
+}
+.stApp [data-testid="stSidebar"] .st-key-logout button {
+  justify-content:center !important;text-align:center !important;min-height:43px !important;
+  padding:9px 7px !important;white-space:nowrap;letter-spacing:.01em;
+}
+/* Prevent the login action from inheriting the previous full-width layout. */
+.stApp [data-testid="stMain"] [data-testid="stForm"] [data-testid="stHorizontalBlock"] .stFormSubmitButton button {
+  min-height:43px !important;border-radius:13px !important;
+  padding:9px 14px !important;
+}
+@media (max-width:1100px) {
+  .stApp .hero.hero-auth .hero-visual {right:-2% !important;width:58% !important;opacity:.83 !important;}
+  .stApp .hero:not(.hero-auth) .hero-visual {right:-2% !important;width:54% !important;opacity:.82 !important;}
+  .stApp .hero .hero-img {max-height:345px !important;}
+}
+@media (max-width:760px) {
+  .stApp .hero.hero-auth .hero-visual,
+  .stApp .hero:not(.hero-auth) .hero-visual {
+    right:-8% !important;top:8% !important;width:74% !important;
+    height:80% !important;opacity:.22 !important;
+  }
+  .stApp .hero.hero-auth .hero-copy,
+  .stApp .hero:not(.hero-auth) .hero-copy {max-width:100% !important;}
+  .stApp .hero .hero-img {max-height:290px !important;}
+}

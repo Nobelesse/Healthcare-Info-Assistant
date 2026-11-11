@@ -368,3 +368,12 @@ Run `python -m pytest -q` after applying the patch, then restart with `python -m
 - Voice recognition now explicitly uses Whisper's `task='transcribe'`, preserving the language rather than translating it to English. Automatic language detection steers the **initial reply** to the spoken language, even if the interface is set differently. Once the user explicitly changes the language dropdown, the existing voice reply is translated to the newly selected language.
 - A larger futuristic SVG microphone icon replaces the small emoji on the Voice Assistant page. Playback requires a compatible voice installed in the browser/operating system. Missing voices are reported rather than reading Hindi with an English voice.
 - This update does not change the database structure, user accounts, saved patient data, or credentials.
+
+
+### Refinement v1.7 — interface and local AI responsiveness
+
+- Removed the fine grid pattern inside the hero card and enlarged the original beating heart so it floats **behind** readable headings without leaving the panel. No AI-generated replacement image is needed.
+- Narrow, centered sign-in, registration and administrator login buttons. Sign-out is also centered and separated from the profile card.
+- English spoken responses now default to **1.75×** with 1.25×, 1.5× and 2× choices; other languages retain their previous playback presets. Actual pronunciation speed depends on the browser/system voice installed.
+- Local Ollama requests use a smaller context window for short questions, shorter chat history context, moderate default answer token limits and a longer model keep-alive. Translation prompts were shortened while preserving medical warnings and unchanged source records.
+- These optimizations can reduce waiting but cannot guarantee latency on every computer; first requests and long translations may still take time on 8 GB RAM. Model quality and medical safety remain more important than raw speed.

@@ -82,6 +82,16 @@ def speech_button(text: str, lang='en', key='speech'):
     payload = json.dumps(cleaned, ensure_ascii=True).replace('<','\\u003c')
     strings = json.dumps(words,ensure_ascii=True).replace('<','\\u003c')
     locale = VOICE_LOCALES.get(lang, 'en-IN')
+    # Requested rate is not standardized across browser/system voices. Make the
+    # English starting rate faster and give users more headroom, while leaving
+    # existing non-English voice settings unchanged.
+    speed_options = (
+        '<option value="1.25">1.25×</option><option value="1.5">1.5×</option>'
+        '<option value="1.75" selected>1.75×</option><option value="2">2×</option>'
+        if lang == 'en' else
+        '<option value="1">1×</option><option value="1.25" selected>1.25×</option>'
+        '<option value="1.5">1.5×</option>'
+    )
     frame = r'''<!doctype html><html><head><meta charset="UTF-8"/><style>
       html,body{margin:0;background:transparent;color:#d9faf5;font:13px system-ui,sans-serif}
       .controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
@@ -90,8 +100,7 @@ def speech_button(text: str, lang='en', key='speech'):
       </style></head><body><div class="controls">
       <button id="play"></button><button id="stop" type="button"></button>
       <label for="speed" id="speed-label"></label>
-      <select id="speed"><option value="1">1×</option><option value="1.25" selected>1.25×</option>
-      <option value="1.5">1.5×</option></select><span id="hint"></span></div>
+      <select id="speed">__SPEED_OPTIONS__</select><span id="hint"></span></div>
       <script>
       const full=__TEXT__,locale=__LOCALE__,msg=__WORDS__;
       document.getElementById('play').textContent='🔊 '+msg.play;
@@ -118,7 +127,8 @@ def speech_button(text: str, lang='en', key='speech'):
         }next();
       };
       </script></body></html>'''
-    frame = frame.replace('__TEXT__',payload).replace('__LOCALE__',json.dumps(locale)).replace('__WORDS__',strings)
+    frame = (frame.replace('__TEXT__',payload).replace('__LOCALE__',json.dumps(locale))
+             .replace('__WORDS__',strings).replace('__SPEED_OPTIONS__',speed_options))
     components.html(frame,height=88,scrolling=False)
 
 

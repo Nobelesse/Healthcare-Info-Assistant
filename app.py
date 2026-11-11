@@ -136,11 +136,18 @@ def guest_sidebar(lang):
     inject_css(st.session_state.get("theme", "dark"))
 
 
+def _centered_submit(label):
+    """Compact primary action centered inside a Streamlit form (desktop/mobile)."""
+    _left, middle, _right = st.columns([0.8, 1.1, 0.8], gap="small")
+    with middle:
+        return st.form_submit_button(label, type="primary", width="stretch")
+
+
 def _user_login(lang):
     with st.form("user_login_form"):
         username = st.text_input(t("field_username", lang), key="login_user_name", max_chars=80)
         password = st.text_input(t("field_password", lang), type="password")
-        if st.form_submit_button(t("action_sign_in", lang), type="primary", width="stretch"):
+        if _centered_submit(t("action_sign_in", lang)):
             account = login(username, password, role="user")
             if account:
                 _session_start(account, preserve_selected_language=True)
@@ -160,7 +167,7 @@ def _user_register(lang):
                          index=list(LANGUAGES).index(supported(lang)),
                          format_func=LANGUAGES.get, accept_new_options=False)
         consent = st.checkbox(t("field_consent", lang))
-        if st.form_submit_button(t("action_create_account", lang), type="primary", width="stretch"):
+        if _centered_submit(t("action_create_account", lang)):
             if pw != pw2:
                 st.error(t("error_password_mismatch", lang))
             else:
@@ -179,7 +186,7 @@ def _admin_login(lang):
         st.error(t("admin_setup_invalid",lang) + ": " + ADMIN_ERROR)
     with st.form("admin_login_form"):
         admin_pw = st.text_input(t("field_admin_password", lang), type="password")
-        if st.form_submit_button(t("action_admin_login", lang), type="primary", width="stretch"):
+        if _centered_submit(t("action_admin_login", lang)):
             account = login(ADMIN_USERNAME, admin_pw, role="admin")
             if account:
                 _session_start(account, preserve_selected_language=True)
@@ -247,8 +254,12 @@ def sidebar(user, lang, admin=False):
         _nav_button("about", "ⓘ", t("about", lang))
         _sidebar_preferences(lang, guest=False, user=user, admin=admin)
         sidebar_user(user, lang)
-        if st.button("⏻   " + t("logout", lang), key="logout", width="stretch"):
-            _logout()
+        st.markdown('<div class="sidebar-logout-gap" aria-hidden="true"></div>',
+                    unsafe_allow_html=True)
+        _left, logout_center, _right = st.columns([0.26, 0.48, 0.26], gap="small")
+        with logout_center:
+            if st.button("⏻   " + t("logout", lang), key="logout", width="stretch"):
+                _logout()
     inject_css(st.session_state.get("theme", "dark"))
 
 
