@@ -12,6 +12,7 @@ from database import store
 from services.ollama_service import medical_answer, report_answer, emergency_notice, OllamaUnavailable, check_ollama
 from services.report_service import extract_pdf, analyze_labs, ReportError, clean_filename
 from services.voice_service import transcribe_audio, VoiceError
+from services.session_flow import active_chat, claim_recording
 from services.export_service import make_english_pdf
 from ui.components import hero, section, metric, feature_card, advisory, speech_button
 from ui.strings import t, local_status, LANGUAGES
@@ -76,8 +77,9 @@ def chat(user,lang):
                                 value='standard',format_func=lambda code:t('detail_'+code,lang))
     with b:
         diet=st.checkbox(t('chat_vegetarian',lang))
-    interactions=list(reversed(store.list_interactions(user['id'],limit=30)))
-    medical=[item for item in interactions if item['kind'] in {'medical','voice'}]
+    # Do NOT load saved records into the open chat. The History page remains the
+    # only place where earlier logins' conversations are displayed.
+    medical=active_chat(st.session_state,user['id'])
     if not medical: st.info(t('chat_try',lang))
     for item in medical[-12:]:
         with st.chat_message('user',avatar='👤'): st.markdown(item['question'])
@@ -88,15 +90,16 @@ def chat(user,lang):
         urgent=emergency_notice(prompt,lang)
         if urgent:
             store.save_interaction(user['id'],prompt,urgent)
-            st.error(urgent)
-            st.stop()
+            medical.append({'question':prompt,'response':urgent})
+            st.rerun()
         try:
             with st.spinner(t('chat_wait',lang)):
                 response=medical_answer(prompt,lang,medical,detail,'vegetarian' if diet else 'any')
             store.save_interaction(user['id'],prompt,response)
+            medical.append({'question':prompt,'response':response})
             st.rerun()
-        except (OllamaUnavailable,ValueError) as exc:
-            st.error(t("generic_error",lang))
+        except (OllamaUnavailable,ValueError):
+            st.error(t('generic_error',lang))
     st.caption(t('chat_disclaimer',lang))
 
 
@@ -170,43 +173,71 @@ def report_analyzer(user,lang):
                         store.delete_report(user['id'],report['id']);st.rerun()
 
 
+def _send_voice_query(user, lang, question):
+    """Persist and show the exact recognized/corrected voice question once."""
+    question=question.strip()
+    if not question:
+        return False
+    urgent=emergency_notice(question,lang)
+    if urgent:
+        store.save_interaction(user['id'],question,urgent,kind='voice')
+        st.session_state['last_voice_response']=urgent
+        st.session_state['voice_submitted_text']=question
+        return True
+    try:
+        with st.spinner(t('voice_generating',lang)):
+            result=medical_answer(question,lang)
+        store.save_interaction(user['id'],question,result,kind='voice')
+        st.session_state['last_voice_response']=result
+        st.session_state['voice_submitted_text']=question
+        return True
+    except (ValueError,OllamaUnavailable):
+        st.error(t('generic_error',lang))
+        return False
+
+
 def voice_assistant(user,lang):
     section(t('voice',lang),t('voice_desc',lang),t('voice_overline',lang))
     st.markdown('''<div class="voice-scene"><div class="voice-ring"></div><div class="voice-ring r2"></div>
         <div class="voice-ring r3"></div><div class="voice-orb">🎙</div></div>''',unsafe_allow_html=True)
     st.caption(t('voice_permission',lang))
-    recording=st.audio_input(t('voice_record',lang),sample_rate=16000)
-    auto=st.checkbox(t('voice_detect',lang),value=True)
+    # st.audio_input reruns on completed recording; no separate Ask click needed.
+    recording=st.audio_input(t('voice_record',lang),sample_rate=16000,key='voice_record_widget')
+    detect=st.checkbox(t('voice_detect',lang),value=True)
     if recording is not None:
-        digest=hashlib.sha256(recording.getvalue()).hexdigest()
-        key=digest+('_auto' if auto else '_'+lang)
-        if st.session_state.get('voice_hash')!=key:
+        audio=recording.getvalue()
+        digest=hashlib.sha256(audio).hexdigest() if audio else ''
+        if claim_recording(st.session_state,digest):
+            # Drop the last displayed result when a DIFFERENT clip is recorded.
+            st.session_state.pop('last_voice_response',None)
+            st.session_state['voice_submitted_text']=''
+            st.session_state['voice_transcript']=''
+            st.session_state['voice_record_digest']=digest
             try:
                 with st.spinner(t('voice_transcribing',lang)):
-                    transcript=transcribe_audio(recording.getvalue(),None if auto else lang)
-                st.session_state.voice_hash=key
-                st.session_state.voice_transcript=transcript
-            except VoiceError as exc: st.error(t("generic_error",lang))
-        if st.session_state.get('voice_hash')==key:
-            transcript=st.text_area(t('voice_review',lang),value=st.session_state.get('voice_transcript',''),
-                                    key='edit_transcript_'+key[:30],height=100)
+                    transcript=transcribe_audio(audio,None if detect else lang)
+                if transcript.strip():
+                    st.session_state['voice_transcript']=transcript.strip()
+                    # Automatic dispatch as soon as Whisper finishes recognizing.
+                    _send_voice_query(user,lang,transcript)
+                else:
+                    st.error(t('generic_error',lang))
+            except VoiceError:
+                st.error(t('generic_error',lang))
+        if st.session_state.get('voice_record_digest') == digest and st.session_state.get('voice_transcript'):
+            # Optional correction only: the FIRST answer was already sent.
+            corrected=st.text_area(t('voice_review',lang),
+                                    value=st.session_state['voice_transcript'],
+                                    key='edit_transcript_'+digest[:30],height=100)
             st.caption(t('voice_review_note',lang))
-            if st.button('✦ '+t('voice_ask',lang),type='primary',disabled=not transcript.strip()):
-                urgent=emergency_notice(transcript,lang)
-                if urgent:
-                    store.save_interaction(user['id'],transcript,urgent,kind='voice')
-                    st.session_state['last_voice_response']=urgent;st.error(urgent);st.stop()
-                try:
-                    with st.spinner(t('voice_generating',lang)):
-                        result=medical_answer(transcript,lang)
-                    store.save_interaction(user['id'],transcript,result,kind='voice')
-                    st.session_state['last_voice_response']=result
-                    st.success(t('voice_saved',lang))
-                except (ValueError,OllamaUnavailable) as exc: st.error(t("generic_error",lang))
+            if corrected.strip() and corrected.strip()!=st.session_state.get('voice_submitted_text',''):
+                if st.button('✦ '+t('voice_ask',lang),type='secondary',key='voice_corrected_submit'):
+                    _send_voice_query(user,lang,corrected)
+        # A rerun from any other widget will NOT send the same recording again.
     if st.session_state.get('last_voice_response'):
         st.markdown('### 🩺 '+t('voice_response',lang))
-        st.markdown(st.session_state.last_voice_response)
-        speech_button(st.session_state.last_voice_response,lang,key='voice_tts')
+        st.markdown(st.session_state['last_voice_response'])
+        speech_button(st.session_state['last_voice_response'],lang,key='voice_tts')
     advisory(lang)
 
 

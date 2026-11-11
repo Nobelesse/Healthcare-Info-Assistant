@@ -27,7 +27,7 @@ def brand(lang='en'):
     # Project name remains in English for all locales by explicit user request.
     st.markdown(f'''<div class="brand"><div class="brand-icon">♡</div><div>
       <div class="brand-title">Healthcare<br>Info Assistant</div>
-      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.4</span></div>
+      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.5</span></div>
       </div></div><div class="brand-line"></div>''', unsafe_allow_html=True)
 
 
@@ -90,8 +90,8 @@ def speech_button(text: str, lang='en', key='speech'):
       </style></head><body><div class="controls">
       <button id="play"></button><button id="stop" type="button"></button>
       <label for="speed" id="speed-label"></label>
-      <select id="speed"><option value="0.85">0.85×</option><option value="1" selected>1×</option>
-      <option value="1.15">1.15×</option></select><span id="hint"></span></div>
+      <select id="speed"><option value="1">1×</option><option value="1.25" selected>1.25×</option>
+      <option value="1.5">1.5×</option></select><span id="hint"></span></div>
       <script>
       const full=__TEXT__,locale=__LOCALE__,msg=__WORDS__;
       document.getElementById('play').textContent='🔊 '+msg.play;

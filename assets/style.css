@@ -747,3 +747,44 @@ button[kind="primary"],.stButton button[kind="primary"],.stFormSubmitButton butt
   }
   .stApp .hero-orbit{animation:none!important;}
 }
+
+
+/* ======================================================================
+   V1.5 — readability first: elevate/reposition the beating-heart art so
+   copy never disappears behind it, at desktop, narrow and mobile widths.
+   Keep cardiac pulse intact. All motion respects reduce-motion preferences.
+   ====================================================================== */
+.stApp .hero.hero-auth .hero-visual {
+  right:-10% !important;
+  top:-45px !important;
+  width:46% !important;
+}
+.stApp .hero:not(.hero-auth) .hero-visual {
+  right:-7% !important;
+  top:-32px !important;
+  width:43% !important;
+}
+/* A gentle veil BEHIND copy maintains contrast when a translated title wraps. */
+.stApp .hero .hero-copy {
+  isolation:isolate;
+}
+.stApp .hero .hero-copy::before {
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  inset:-6px -18px -6px -12px;
+  background:linear-gradient(90deg,rgba(8,39,57,.92),rgba(8,39,57,.76) 62%,transparent 100%);
+  filter:blur(16px);
+}
+.stApp:has(#theme-light-marker) [data-testid="stMain"] .hero .hero-copy::before {
+  background:linear-gradient(90deg,rgba(244,255,252,.97),rgba(240,251,247,.83) 68%,transparent 100%);
+}
+@media(max-width:1150px) {
+  .stApp .hero.hero-auth .hero-visual{right:-19% !important;top:-37px !important;width:56% !important;opacity:.79;}
+  .stApp .hero:not(.hero-auth) .hero-visual{right:-14% !important;top:-29px !important;width:49% !important;opacity:.72;}
+}
+@media(max-width:760px) {
+  .stApp .hero.hero-auth .hero-visual,
+  .stApp .hero:not(.hero-auth) .hero-visual{
+    right:-27% !important;top:-14px !important;width:75% !important;opacity:.19;
+  }
+  .stApp .hero .hero-copy{max-width:100% !important;}
+}

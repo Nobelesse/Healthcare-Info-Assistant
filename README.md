@@ -340,3 +340,21 @@ Run `python -m pytest -q` after applying the patch, then restart with `python -m
   AI answers, uploaded reports and names are not automatically translated.
 - Voice transcription and speech output for newly added languages depend on the
   local recognition model and installed browser/system voices.
+
+
+### Refinement v1.5 (session chat, auto voice, and visual placement)
+
+- The animated heart is positioned higher and farther to the right, with a
+  contrast veil behind text, so medical guidance remains readable.
+- Once a microphone recording is finished, local Whisper transcription is sent
+  automatically to Ollama. There is no mandatory **Ask Ollama** click. A manual
+  correction option appears only if you edit the recognized text (or AI fails).
+  One recording is processed at most once automatically; record a new clip to retry.
+- Browser speech playback options are now **1×, 1.25× (default), 1.5×**.
+  Actual perceived speed varies across browser voices and languages.
+- Active AI chat is private to the current login session and **starts empty**
+  after sign-out/sign-in. Prior conversations remain in **My History** for the
+  same user. Refreshing the tab also clears active chat because Streamlit
+  sessions are browser-connection scoped; records remain available in History.
+- The patch installer does not alter the local SQLite database, `.env`, Git
+  history, saved reports, or administrator credentials.

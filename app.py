@@ -44,6 +44,9 @@ def _session_start(user, *, preserve_selected_language=False):
     st.session_state.clear()
     st.session_state["theme"] = theme
     st.session_state["identity"] = {"user_id": user["id"], "role": user["role"]}
+    # Fresh, private active chat at every login; saved history stays in SQLite.
+    st.session_state["active_chat_user_id"] = user["id"]
+    st.session_state["active_chat_messages"] = []
     st.session_state["language"] = chosen
     st.session_state["page"] = "overview" if user["role"] == "admin" else "home"
     st.rerun()

@@ -176,7 +176,7 @@ C.update({
 'voice_detect': ('Detect spoken language automatically','बोली गई भाषा अपने आप पहचानें','बोललेली भाषा आपोआप ओळखा','Detectar idioma hablado automáticamente'),
 'voice_transcribing': ('Transcribing locally…','स्थानीय रूप से आवाज़ लिखी जा रही है…','स्थानिकरित्या आवाज मजकूरात बदलत आहे…','Transcribiendo localmente…'),
 'voice_review': ('Review and edit recognized text','पहचाने गए पाठ की जाँच करें और सुधारें','ओळखलेला मजकूर तपासा आणि दुरुस्त करा','Revisa y corrige el texto reconocido'),
-'voice_review_note': ('Nothing is sent to Ollama until you press Ask. Check medical names carefully.','जब तक आप पूछने का बटन नहीं दबाते, Ollama को कुछ नहीं भेजा जाता। चिकित्सा नाम ध्यान से जाँचें।','विचारा बटण दाबेपर्यंत Ollama ला काही पाठवले जात नाही. वैद्यकीय नावे काळजीपूर्वक तपासा.','No se envía nada a Ollama hasta que pulses Preguntar. Comprueba los términos médicos.'),
+'voice_review_note': ('Your recording was sent automatically. Check medical names; edit the text to ask again only if needed.','रिकॉर्डिंग समाप्त होते ही सवाल अपने आप भेज दिया गया है। मेडिकल नाम जाँचें; गलती हो तो पाठ सुधारकर दोबारा पूछें।','रेकॉर्डिंग पूर्ण झाल्यावर प्रश्न आपोआप पाठवला आहे. वैद्यकीय नावे तपासा; गरज असल्यास मजकूर सुधारून पुन्हा विचारा.','La pregunta se envió automáticamente al terminar de grabar. Revisa los términos médicos y corrige el texto solo si necesitas volver a preguntar.'),
 'voice_ask': ('Ask Ollama','Ollama से पूछें','Ollama ला विचारा','Preguntar a Ollama'),
 'voice_generating': ('Generating answer…','उत्तर तैयार हो रहा है…','उत्तर तयार होत आहे…','Generando respuesta…'),
 'voice_saved': ('Answer saved in your history.','उत्तर इतिहास में सहेजा गया।','उत्तर इतिहासात जतन झाले.','Respuesta guardada en tu historial.'),
