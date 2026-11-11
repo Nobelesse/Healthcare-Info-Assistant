@@ -91,6 +91,9 @@ def _sidebar_preferences(lang, *, guest=False, user=None, admin=False):
     )
     wanted = selected
     if wanted != lang:
+        # A deliberate selection overrides the initial spoken-language reply,
+        # and asks the display layer to translate current answers on demand.
+        st.session_state["language_revision"] = st.session_state.get("language_revision", 0) + 1
         st.session_state["language"] = wanted
         if not guest and not admin and user:
             store.update_user_profile(user["id"], user["full_name"], wanted)

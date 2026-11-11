@@ -61,10 +61,10 @@ def test_voice_autosubmits_once_after_successful_recognition():
     snippet = ast.get_source_segment(view, voice)
     assert 'recording=st.audio_input(' in snippet
     assert 'claim_recording(st.session_state,digest)' in snippet
-    assert 'transcribe_audio(audio,None if detect else lang)' in snippet
-    assert '_send_voice_query(user,lang,transcript)' in snippet
+    assert 'transcribe_audio_with_language(audio,None if detect else lang)' in snippet
+    assert '_send_voice_query(user,lang,transcript,answer_lang=reply_lang)' in snippet
     assert 'st.session_state[\'voice_transcript\']=transcript.strip()' in snippet
-    assert '_send_voice_query(user,lang,corrected)' in snippet  # manual only if corrected
+    assert '_send_voice_query(user,lang,corrected,' in snippet  # manual only if corrected
     assert 'corrected.strip()!=st.session_state.get(' in snippet
     assert 'if transcript.strip():' in snippet
 

@@ -27,7 +27,7 @@ def brand(lang='en'):
     # Project name remains in English for all locales by explicit user request.
     st.markdown(f'''<div class="brand"><div class="brand-icon">♡</div><div>
       <div class="brand-title">Healthcare<br>Info Assistant</div>
-      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.5</span></div>
+      <div class="brand-subtitle">{escape(t('brand_specialty',lang))} <span class="release-tag">V1.6</span></div>
       </div></div><div class="brand-line"></div>''', unsafe_allow_html=True)
 
 
@@ -100,12 +100,16 @@ def speech_button(text: str, lang='en', key='speech'):
       const hint=document.getElementById('hint');
       function cancel(){if('speechSynthesis' in window) speechSynthesis.cancel();}
       document.getElementById('stop').onclick=()=>{cancel();hint.textContent=msg.speech_stopped;};
+      window.addEventListener('pagehide',cancel);
       document.getElementById('play').onclick=()=>{
         if(!('speechSynthesis' in window)){hint.textContent=msg.speech_unavailable;return;}
         cancel();const voices=speechSynthesis.getVoices();
-        const voice=voices.find(v=>v.lang.toLowerCase().startsWith(locale.slice(0,2).toLowerCase()));
+        const langBase=locale.split('-')[0].toLowerCase();
+        const voice=voices.find(v=>v.lang.toLowerCase()===locale.toLowerCase()) ||
+          voices.find(v=>v.lang.toLowerCase().split('-')[0]===langBase);
+        if(!voice){hint.textContent=msg.speech_voice_missing;return;}
         const chunks=full.match(/[\s\S]{1,160}/g)||[full];let index=0;
-        hint.textContent=voice?msg.speech_speaking:msg.speech_voice_missing;
+        hint.textContent=msg.speech_speaking;
         function next(){if(index>=chunks.length){hint.textContent=msg.speech_finished;return;}
           const utter=new SpeechSynthesisUtterance(chunks[index++]);utter.lang=locale;
           utter.rate=Number(document.getElementById('speed').value);if(voice) utter.voice=voice;

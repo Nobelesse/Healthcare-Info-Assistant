@@ -358,3 +358,13 @@ Run `python -m pytest -q` after applying the patch, then restart with `python -m
   sessions are browser-connection scoped; records remain available in History.
 - The patch installer does not alter the local SQLite database, `.env`, Git
   history, saved reports, or administrator credentials.
+
+
+## v1.6 refinement: multilingual answer re-display and voice fidelity
+
+- The animated heart and orbit are kept within the hero card on typical desktop widths.
+- A language change translates **already displayed** chat answers via local Ollama and caches the result only in the signed-in Streamlit session. The saved original in SQLite remains untouched. Translation may take additional time on Llama 3.2 3B; it is not clinically verified. If Ollama is unavailable, the original is shown with a warning, and wrong-language speech playback is disabled.
+- Existing saved report summaries and the currently selected history answer are translated on display as well. New reports remember their source language for the current login, avoiding needless retranslation. Open history sparingly on low-power laptops because many long answers can require multiple local translation requests.
+- Voice recognition now explicitly uses Whisper's `task='transcribe'`, preserving the language rather than translating it to English. Automatic language detection steers the **initial reply** to the spoken language, even if the interface is set differently. Once the user explicitly changes the language dropdown, the existing voice reply is translated to the newly selected language.
+- A larger futuristic SVG microphone icon replaces the small emoji on the Voice Assistant page. Playback requires a compatible voice installed in the browser/operating system. Missing voices are reported rather than reading Hindi with an English voice.
+- This update does not change the database structure, user accounts, saved patient data, or credentials.

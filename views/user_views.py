@@ -11,7 +11,8 @@ from config.settings import MAX_REPORT_BYTES
 from database import store
 from services.ollama_service import medical_answer, report_answer, emergency_notice, OllamaUnavailable, check_ollama
 from services.report_service import extract_pdf, analyze_labs, ReportError, clean_filename
-from services.voice_service import transcribe_audio, VoiceError
+from services.voice_service import transcribe_audio_with_language, VoiceError
+from services.translation_service import display_in_language, preferred_voice_language, voice_display_language
 from services.session_flow import active_chat, claim_recording
 from services.export_service import make_english_pdf
 from ui.components import hero, section, metric, feature_card, advisory, speech_button
@@ -81,22 +82,30 @@ def chat(user,lang):
     # only place where earlier logins' conversations are displayed.
     medical=active_chat(st.session_state,user['id'])
     if not medical: st.info(t('chat_try',lang))
+    localized_last = None
     for item in medical[-12:]:
         with st.chat_message('user',avatar='👤'): st.markdown(item['question'])
-        with st.chat_message('assistant',avatar='🩺'): st.markdown(item['response'])
-    if medical: speech_button(medical[-1]['response'],lang,key='chat_tts')
+        display_answer, translated = display_in_language(
+            st.session_state, item['response'], lang, item.get('language'), user['id'])
+        with st.chat_message('assistant',avatar='🩺'):
+            if not translated: st.caption('🌐 '+t('translation_unavailable',lang))
+            st.markdown(display_answer)
+        localized_last = (display_answer, translated)
+    if localized_last:
+        # Speak the language of the DISPLAYED text, never an old English reply.
+        if localized_last[1]: speech_button(localized_last[0], lang, key='chat_tts')
     prompt=st.chat_input(t('chat_placeholder',lang))
     if prompt:
         urgent=emergency_notice(prompt,lang)
         if urgent:
             store.save_interaction(user['id'],prompt,urgent)
-            medical.append({'question':prompt,'response':urgent})
+            medical.append({'question':prompt,'response':urgent,'language':lang})
             st.rerun()
         try:
             with st.spinner(t('chat_wait',lang)):
                 response=medical_answer(prompt,lang,medical,detail,'vegetarian' if diet else 'any')
             store.save_interaction(user['id'],prompt,response)
-            medical.append({'question':prompt,'response':response})
+            medical.append({'question':prompt,'response':response,'language':lang})
             st.rerun()
         except (OllamaUnavailable,ValueError):
             st.error(t('generic_error',lang))
@@ -118,12 +127,13 @@ def _labs_dataframe(labs,lang='en'):
     st.caption(t('lab_verify',lang))
 
 
-def _report_export(report,lang,prefix='my'):
-    text_data=f'Healthcare Info Assistant\n{t("reports",lang)}: {report["filename"]}\n\n{report["ai_summary"]}\n\n{t("export_disclaimer",lang)}'
+def _report_export(report,lang,prefix='my',localized_summary=None):
+    chosen_summary = report['ai_summary'] if localized_summary is None else localized_summary
+    text_data=f'Healthcare Info Assistant\n{t("reports",lang)}: {report["filename"]}\n\n{chosen_summary}\n\n{t("export_disclaimer",lang)}'
     st.download_button('⬇ '+t('export_txt',lang),text_data.encode('utf-8'),
                        f'{prefix}_report_{report["id"]}.txt',mime='text/plain',key=f'txt_{prefix}_{report["id"]}')
     if lang=='en':
-        pdf=make_english_pdf(report['filename'],report['ai_summary'])
+        pdf=make_english_pdf(report['filename'],chosen_summary)
         st.download_button('⬇ '+t('export_pdf',lang),pdf,f'{prefix}_report_{report["id"]}.pdf',
                            mime='application/pdf',key=f'pdf_{prefix}_{report["id"]}')
     else:
@@ -150,6 +160,7 @@ def report_analyzer(user,lang):
                     summary=report_answer(extracted,labs,lang)
                 report_id=store.save_report(user['id'],clean_filename(upload.name),pages,extracted,labs,summary)
                 st.session_state.last_report_id=report_id
+                st.session_state.setdefault('report_original_languages',{})[report_id]=lang
                 st.success(t('reports_saved',lang))
             except (ReportError,OllamaUnavailable,ValueError) as exc: st.error(t("generic_error",lang))
     reports=store.list_reports(user['id'],limit=20)
@@ -162,9 +173,13 @@ def report_analyzer(user,lang):
             report=store.get_report(ids[selected],user['id'])
             if report:
                 _labs_dataframe(report['labs'],lang)
-                st.markdown(report['ai_summary'])
-                speech_button(report['ai_summary'],lang,key='report_tts')
-                _report_export(report,lang)
+                summary, translated = display_in_language(
+                    st.session_state, report['ai_summary'], lang,
+                    st.session_state.get('report_original_languages',{}).get(report['id']), user['id'])
+                if not translated: st.warning(t('translation_unavailable',lang))
+                st.markdown(summary)
+                if translated: speech_button(summary,lang,key='report_tts')
+                _report_export(report,lang,localized_summary=summary)
                 with st.expander(t('reports_source',lang)):
                     st.text(report['extracted_text'])
                 with st.expander(t('reports_delete',lang)):
@@ -173,22 +188,27 @@ def report_analyzer(user,lang):
                         store.delete_report(user['id'],report['id']);st.rerun()
 
 
-def _send_voice_query(user, lang, question):
-    """Persist and show the exact recognized/corrected voice question once."""
+def _send_voice_query(user, lang, question, answer_lang=None):
+    """Persist recognized speech once, answering in the detected speaking language."""
+    reply_lang=answer_lang or lang
     question=question.strip()
     if not question:
         return False
-    urgent=emergency_notice(question,lang)
+    urgent=emergency_notice(question,reply_lang)
     if urgent:
         store.save_interaction(user['id'],question,urgent,kind='voice')
         st.session_state['last_voice_response']=urgent
+        st.session_state['last_voice_response_lang']=reply_lang
+        st.session_state['voice_response_revision']=st.session_state.get('language_revision',0)
         st.session_state['voice_submitted_text']=question
         return True
     try:
         with st.spinner(t('voice_generating',lang)):
-            result=medical_answer(question,lang)
+            result=medical_answer(question,reply_lang)
         store.save_interaction(user['id'],question,result,kind='voice')
         st.session_state['last_voice_response']=result
+        st.session_state['last_voice_response_lang']=reply_lang
+        st.session_state['voice_response_revision']=st.session_state.get('language_revision',0)
         st.session_state['voice_submitted_text']=question
         return True
     except (ValueError,OllamaUnavailable):
@@ -198,8 +218,17 @@ def _send_voice_query(user, lang, question):
 
 def voice_assistant(user,lang):
     section(t('voice',lang),t('voice_desc',lang),t('voice_overline',lang))
-    st.markdown('''<div class="voice-scene"><div class="voice-ring"></div><div class="voice-ring r2"></div>
-        <div class="voice-ring r3"></div><div class="voice-orb">🎙</div></div>''',unsafe_allow_html=True)
+    st.markdown('''<div class="voice-scene" role="img" aria-label="AI voice assistant microphone visual">
+        <div class="voice-ring"></div><div class="voice-ring r2"></div><div class="voice-ring r3"></div>
+        <div class="voice-orb"><svg class="voice-mic-icon" viewBox="0 0 100 100" fill="none"
+        xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="33" y="15" width="34" height="51" rx="17" fill="url(#micBody)" stroke="#E9FFFC" stroke-width="4"/>
+        <path d="M23 48v6c0 15 12 27 27 27s27-12 27-27v-6" stroke="#E9FFFC" stroke-width="6" stroke-linecap="round"/>
+        <path d="M50 81v12M34 94h32" stroke="#E9FFFC" stroke-width="5" stroke-linecap="round"/>
+        <path d="M42 29h16M42 39h16" stroke="#C6FFF6" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+        <defs><linearGradient id="micBody" x1="29" y1="17" x2="70" y2="66" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#9EFFF1"/><stop offset=".5" stop-color="#38DDDA"/><stop offset="1" stop-color="#126C9C"/>
+        </linearGradient></defs></svg></div></div>''',unsafe_allow_html=True)
     st.caption(t('voice_permission',lang))
     # st.audio_input reruns on completed recording; no separate Ask click needed.
     recording=st.audio_input(t('voice_record',lang),sample_rate=16000,key='voice_record_widget')
@@ -215,11 +244,13 @@ def voice_assistant(user,lang):
             st.session_state['voice_record_digest']=digest
             try:
                 with st.spinner(t('voice_transcribing',lang)):
-                    transcript=transcribe_audio(audio,None if detect else lang)
+                    transcript, spoken_code = transcribe_audio_with_language(audio,None if detect else lang)
                 if transcript.strip():
                     st.session_state['voice_transcript']=transcript.strip()
-                    # Automatic dispatch as soon as Whisper finishes recognizing.
-                    _send_voice_query(user,lang,transcript)
+                    reply_lang = preferred_voice_language(lang, spoken_code, detect, LANGUAGES)
+                    st.session_state['voice_detected_language']=reply_lang
+                    # Auto-dispatch in the actual spoken language, not the UI locale.
+                    _send_voice_query(user,lang,transcript,answer_lang=reply_lang)
                 else:
                     st.error(t('generic_error',lang))
             except VoiceError:
@@ -229,15 +260,25 @@ def voice_assistant(user,lang):
             corrected=st.text_area(t('voice_review',lang),
                                     value=st.session_state['voice_transcript'],
                                     key='edit_transcript_'+digest[:30],height=100)
+            detected_code=st.session_state.get('voice_detected_language',lang)
+            st.caption(t('voice_detected_language',lang,locale=LANGUAGES.get(detected_code,detected_code)))
             st.caption(t('voice_review_note',lang))
             if corrected.strip() and corrected.strip()!=st.session_state.get('voice_submitted_text',''):
                 if st.button('✦ '+t('voice_ask',lang),type='secondary',key='voice_corrected_submit'):
-                    _send_voice_query(user,lang,corrected)
+                    _send_voice_query(user,lang,corrected,
+                                      answer_lang=st.session_state.get('voice_detected_language',lang))
         # A rerun from any other widget will NOT send the same recording again.
     if st.session_state.get('last_voice_response'):
         st.markdown('### 🩺 '+t('voice_response',lang))
-        st.markdown(st.session_state['last_voice_response'])
-        speech_button(st.session_state['last_voice_response'],lang,key='voice_tts')
+        original_lang = st.session_state.get('last_voice_response_lang',lang)
+        display_lang = voice_display_language(
+            lang, original_lang, st.session_state.get('language_revision',0),
+            st.session_state.get('voice_response_revision',0))
+        answer, translated = display_in_language(
+            st.session_state,st.session_state['last_voice_response'],display_lang,original_lang,user['id'])
+        if not translated: st.warning(t('translation_unavailable',lang))
+        st.markdown(answer)
+        if translated: speech_button(answer,display_lang,key='voice_tts')
     advisory(lang)
 
 
@@ -248,13 +289,27 @@ def history(user,lang):
     filters=['all','medical','voice']
     selection=st.selectbox(t('history_type',lang),filters,
                            format_func=lambda x:t('history_'+x,lang))
-    for item in interactions:
-        if selection!='all' and item['kind']!=selection: continue
-        with st.expander(f'{"🎙" if item["kind"]=="voice" else "💬"} {item["question"][:100]} · {when(item["created_at"])}'):
-            st.markdown('**'+t('history_question',lang)+'**');st.write(item['question'])
-            st.markdown('**'+t('history_answer',lang)+'**');st.markdown(item['response'])
-            if st.button('🗑 '+t('action_delete',lang),key=f'del_chat_{item["id"]}'):
-                store.delete_interaction(user['id'],item['id']);st.rerun()
+    # Select ONE saved conversation at a time. Auto-translating 100 medical
+    # answers on a laptop would block the page for minutes and waste resources.
+    visible=[item for item in interactions if selection=='all' or item['kind']==selection]
+    if not visible: st.info(t('empty',lang));return
+    current=st.selectbox(
+        t('history_choose',lang),range(len(visible)),
+        format_func=lambda index: (
+            f'{"🎙" if visible[index]["kind"]=="voice" else "💬"} '
+            f'{visible[index]["question"][:90]} · {when(visible[index]["created_at"])}'),
+        key='history_selected_item')
+    item=visible[current]
+    with st.container(border=True):
+        st.markdown('**'+t('history_question',lang)+'**');st.write(item['question'])
+        st.markdown('**'+t('history_answer',lang)+'**')
+        localized, translated = display_in_language(
+            st.session_state,item['response'],lang,None,user['id'])
+        if not translated: st.caption('🌐 '+t('translation_unavailable',lang))
+        st.markdown(localized)
+        if translated: speech_button(localized,lang,key=f'history_tts_{item["id"]}')
+        if st.button('🗑 '+t('action_delete',lang),key=f'del_chat_{item["id"]}'):
+            store.delete_interaction(user['id'],item['id']);st.rerun()
 
 
 def insights(user,lang):

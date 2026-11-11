@@ -345,6 +345,24 @@ C.update({
 # Existing four complete catalogs are preserved byte-for-byte. The fallback for
 # any unavailable extra-language string is intentionally English (not a fake
 # machine translation); optional Ollama-built locale packs improve coverage.
+C.update({
+    'history_choose': (
+        'Choose a saved conversation',
+        'सहेजी गई बातचीत चुनें',
+        'जतन केलेले संभाषण निवडा',
+        'Seleccionar una conversación guardada'),
+    'voice_detected_language': (
+        'Detected speaking language: {locale}',
+        'पहचानी गई बोली की भाषा: {locale}',
+        'ओळखली गेलेली बोलण्याची भाषा: {locale}',
+        'Idioma detectado: {locale}'),
+    'translation_unavailable': (
+        'Translation is temporarily unavailable; showing the saved original answer.',
+        'अनुवाद अभी उपलब्ध नहीं है; मूल सुरक्षित उत्तर दिखाया जा रहा है।',
+        'भाषांतर सध्या उपलब्ध नाही; मूळ जतन केलेले उत्तर दाखवले आहे.',
+        'La traducción no está disponible; se muestra la respuesta original guardada.'),
+})
+
 from ui.extra_languages import EXTRA_NAMES, EXTRA_TEXT, EXTRA_VOICES
 from functools import lru_cache
 import json
