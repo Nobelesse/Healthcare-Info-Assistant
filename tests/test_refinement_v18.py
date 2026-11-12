@@ -133,8 +133,9 @@ def test_all_app_pages_use_localized_labels_and_guard_partial_locale():
     app=(ROOT/'app.py').read_text('utf8')
     admin=(ROOT/'views/admin_views.py').read_text('utf8')
     user=(ROOT/'views/user_views.py').read_text('utf8')
-    assert 'prepare_language_pack(wanted,progress=on_progress)' in app
-    assert 'if complete != total:' in app  # no false success
+    assert 'if not _ensure_locale_ready(lang):' in app
+    assert 'show_locale_preparation(lang)' in app
+    assert 'prepare_language_pack(wanted,progress=on_progress)' not in app  # no blocking UI
     assert 'complete_locales()' in app
     assert 'complete_locales()' in user  # profile cannot choose a partial pack
     assert 't(\'admin_reauth_prompt\',lang)' in admin

@@ -11,7 +11,7 @@ from config.settings import ADMIN_USERNAME
 from database.store import initialize_database, get_user
 from database import store
 from ui.components import inject_css, brand, sidebar_user, footer, hero, section, advisory
-from ui.strings import t, LANGUAGES, supported, locale_coverage, complete_locales, reload_locale_cache
+from ui.strings import t, LANGUAGES, supported, complete_locales
 from views import user_views, admin_views
 from views.about_view import about_page
 from ui.v2_strings import v2t
@@ -35,14 +35,20 @@ except AuthError as e:
 GUEST_PAGES = {"user_login", "register", "admin_login", "about"}
 
 
-def _avoid_partial_legacy_locale(lang):
-    """Old user profiles may contain an unfinished 1.4–1.7 locale selection."""
-    done,total=locale_coverage(lang)
-    if done < total:
-        st.session_state['legacy_locale_pending']=lang
-        st.session_state['language']='en'
-        return 'en'
-    return lang
+def _ensure_locale_ready(lang):
+    """Render a translated, non-blocking preparation screen for new locales.
+
+    No model inference happens in the Streamlit event handler. Once a local UI
+    pack is ready, all standard pages are shown completely in the chosen locale.
+    The existing English/Hindi/Marathi/Spanish catalogs need no preparation.
+    """
+    from ui.strings import locale_coverage
+    done, total = locale_coverage(lang)
+    if done == total:
+        return True
+    from ui.locale_wait import show_locale_preparation
+    show_locale_preparation(lang)
+    return False
 
 
 def _session_start(user, *, preserve_selected_language=False):
@@ -101,55 +107,15 @@ def _sidebar_preferences(lang, *, guest=False, user=None, admin=False):
         accept_new_options=False,
         width="stretch",
     )
-    wanted=selected
+    wanted = selected
     if wanted != lang:
-        complete,total = locale_coverage(wanted)
-        if complete < total:
-            # A partial language must not silently show English labels across
-            # admin, chat, report and profile pages. Build its *entire* UI
-            # catalog via local Ollama, then switch only if 100% is validated.
-            if st.session_state.get('locale_preparation_failed') == wanted:
-                st.warning(t('locale_prepare_failed',lang))
-                if st.button('↻ '+t('locale_preparing',lang,language=LANGUAGES[wanted]),
-                             key='retry_locale_pack'):
-                    st.session_state.pop('locale_preparation_failed',None)
-                    st.rerun()
-                return
-            from scripts.translate_ui import prepare_language_pack, TranslationPreparationError
-            with st.status(t('locale_preparing',lang,language=LANGUAGES[wanted]), expanded=True) as status:
-                bar=st.progress(complete/total)
-                label=st.empty()
-                def on_progress(done,count):
-                    bar.progress(done/count)
-                    label.caption(t('locale_progress',lang,complete=done,total=count))
-                try:
-                    complete,total=prepare_language_pack(wanted,progress=on_progress)
-                except TranslationPreparationError:
-                    status.update(state='error')
-                    st.session_state['locale_preparation_failed']=wanted
-                    st.error(t('locale_prepare_failed',lang))
-                    return
-                reload_locale_cache()
-                if complete != total:
-                    status.update(state='error')
-                    st.session_state['locale_preparation_failed']=wanted
-                    st.warning(t('locale_prepare_failed',lang))
-                    return
-                status.update(state='complete',expanded=False)
-        # Switch only to a fully translated UI locale.
-        st.session_state.pop('locale_preparation_failed',None)
+        # Select first, rerun immediately. A missing local UI pack is prepared
+        # off the Streamlit thread; never keep the previous language on screen.
         st.session_state["language_revision"] = st.session_state.get("language_revision", 0) + 1
         st.session_state["language"] = wanted
         if not guest and not admin and user:
             store.update_user_profile(user["id"], user["full_name"], wanted)
         st.rerun()
-    if st.session_state.pop('legacy_locale_pending',None):
-        st.info(t('locale_previous',lang))
-    translated,total=locale_coverage(lang)
-    if translated < total:
-        # Legacy profiles from old releases can still hold a partial locale.
-        st.warning(t('locale_prepare_failed','en'))
-        st.caption(t('locale_progress','en',complete=translated,total=total))
     theme_now = st.toggle(
         t("sidebar_light_theme", lang),
         value=st.session_state.get("theme", "dark") == "light",
@@ -248,7 +214,8 @@ def landing():
     st.session_state.setdefault("guest_page", "user_login")
     if st.session_state["guest_page"] not in GUEST_PAGES:
         st.session_state["guest_page"] = "user_login"
-    lang = _avoid_partial_legacy_locale(lang)
+    if not _ensure_locale_ready(lang):
+        return
     guest_sidebar(lang)
     choice = st.session_state["guest_page"]
     if choice == "about":
@@ -326,7 +293,8 @@ def authenticated():
     admin = user["role"] == "admin"
     lang = st.session_state.get("language", user["language"])
     lang = supported(lang)
-    lang = _avoid_partial_legacy_locale(lang)
+    if not _ensure_locale_ready(lang):
+        return
     sidebar(user, lang, admin=admin)
     page = st.session_state.get("page", "overview" if admin else "home")
     if admin:

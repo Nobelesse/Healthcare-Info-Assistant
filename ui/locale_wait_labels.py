@@ -1,0 +1,26 @@
+"""Small, reviewed first-run status catalog in every supported locale.
+
+These texts are available immediately, before the full local-only UI pack exists.
+The patient-facing pages themselves only render after their pack is complete.
+"""
+_MESSAGES = {
+'en': ('Interface language', 'Preparing your language', 'Your complete interface is being translated with local Ollama. You can switch languages while it works.', 'All medical information remains on this computer. Once prepared, switching to this language will be immediate, even offline.', '{done}/{total} interface labels ready', 'The local translator could not finish. Check Ollama and its model, then retry.', 'Retry preparation'),
+'hi': ('इंटरफ़ेस की भाषा', 'आपकी भाषा तैयार हो रही है', 'स्थानीय Ollama से पूरा इंटरफ़ेस अनुवादित किया जा रहा है। आप दूसरी भाषा चुन सकते हैं।', 'मेडिकल जानकारी इस कंप्यूटर पर रहती है। तैयारी के बाद भाषा तुरंत बदलेगी, बिना इंटरनेट भी।', '{done}/{total} इंटरफ़ेस लेबल तैयार', 'स्थानीय अनुवाद पूरा नहीं हुआ। Ollama जाँचें और दोबारा कोशिश करें।', 'फिर से कोशिश करें'),
+'mr': ('इंटरफेसची भाषा', 'तुमची भाषा तयार होत आहे', 'स्थानिक Ollama वापरून संपूर्ण इंटरफेसचे भाषांतर होत आहे. तुम्ही दुसरी भाषा निवडू शकता.', 'वैद्यकीय माहिती याच संगणकावर राहते. तयारीनंतर भाषा ऑफलाइनही लगेच बदलेल.', '{done}/{total} इंटरफेस मजकूर तयार', 'स्थानिक भाषांतर अपूर्ण आहे. Ollama तपासून पुन्हा प्रयत्न करा.', 'पुन्हा प्रयत्न करा'),
+'es': ('Idioma de la interfaz', 'Preparando tu idioma', 'Ollama local está traduciendo toda la interfaz. Puedes elegir otro idioma mientras tanto.', 'Los datos médicos permanecen en este equipo. Una vez preparado, el cambio será instantáneo y sin Internet.', '{done}/{total} etiquetas preparadas', 'La traducción local no se completó. Comprueba Ollama e inténtalo de nuevo.', 'Reintentar'),
+'fr': ("Langue de l’interface", 'Préparation de votre langue', 'Ollama traduit localement toute l’interface. Vous pouvez choisir une autre langue.', 'Les données médicales restent sur cet ordinateur. Une fois prête, la langue changera instantanément et hors ligne.', '{done}/{total} libellés prêts', 'La traduction locale est incomplète. Vérifiez Ollama et réessayez.', 'Réessayer'),
+'de': ('Sprache der Oberfläche', 'Ihre Sprache wird vorbereitet', 'Ollama übersetzt die gesamte Oberfläche lokal. Sie können eine andere Sprache wählen.', 'Medizinische Daten bleiben auf diesem Computer. Danach ist der Sprachwechsel sofort und offline möglich.', '{done}/{total} Oberflächentexte bereit', 'Die lokale Übersetzung ist unvollständig. Prüfen Sie Ollama und versuchen Sie es erneut.', 'Erneut versuchen'),
+'ja': ('表示言語', '日本語を準備しています', 'ローカルのOllamaで画面全体を翻訳しています。準備中も別の言語を選べます。', '医療情報はこの端末に保持されます。準備後はオフラインでもすぐに切り替えられます。', '{done}/{total} 件の画面表示を準備済み', '翻訳が完了しませんでした。Ollamaとモデルを確認し、再試行してください。', '再試行'),
+'zh': ('界面语言', '正在准备您的语言', '本地 Ollama 正在翻译整个界面。您可以随时选择其他语言。', '医疗信息仅保留在此设备上。准备完成后，即使离线也能立即切换。', '已准备 {done}/{total} 项界面文本', '本地翻译未完成。请检查 Ollama 和模型，然后重试。', '重试'),
+'pt': ('Idioma da interface', 'A preparar o seu idioma', 'O Ollama local está a traduzir toda a interface. Pode selecionar outro idioma entretanto.', 'Os dados médicos ficam neste computador. Depois de preparado, o idioma muda de imediato, mesmo offline.', '{done}/{total} textos preparados', 'A tradução local está incompleta. Verifique o Ollama e tente novamente.', 'Tentar novamente'),
+'ru': ('Язык интерфейса', 'Подготавливаем ваш язык', 'Локальная Ollama переводит весь интерфейс. Пока можно выбрать другой язык.', 'Медицинские данные остаются на этом компьютере. После подготовки переключение мгновенно и без сети.', 'Переведено {done}/{total} элементов', 'Локальный перевод не завершён. Проверьте Ollama и повторите.', 'Повторить'),
+'ar': ('لغة الواجهة', 'جارٍ تجهيز لغتك', 'يترجم Ollama المحلي الواجهة كاملة. يمكنك اختيار لغة أخرى أثناء ذلك.', 'تبقى المعلومات الطبية على هذا الكمبيوتر. بعد التحضير يمكنك التبديل فورًا دون إنترنت.', 'تم تجهيز {done}/{total} نصًا', 'لم تكتمل الترجمة المحلية. تحقّق من Ollama والنموذج وأعد المحاولة.', 'إعادة المحاولة'),
+'bn': ('ইন্টারফেসের ভাষা', 'আপনার ভাষা প্রস্তুত হচ্ছে', 'স্থানীয় Ollama দিয়ে পুরো ইন্টারফেস অনুবাদ হচ্ছে। এ সময় অন্য ভাষাও বেছে নিতে পারেন।', 'চিকিৎসা তথ্য এই কম্পিউটারেই থাকে। প্রস্তুত হলে ইন্টারনেট ছাড়াই দ্রুত ভাষা বদলানো যাবে।', '{done}/{total} ইন্টারফেস লেখা প্রস্তুত', 'স্থানীয় অনুবাদ শেষ হয়নি। Ollama পরীক্ষা করে আবার চেষ্টা করুন।', 'আবার চেষ্টা করুন'),
+'ta': ('இடைமுக மொழி', 'உங்கள் மொழி தயாராகிறது', 'உள்ளூர் Ollama முழு இடைமுகத்தையும் மொழிபெயர்க்கிறது. இதற்கிடையில் வேறு மொழியைத் தேர்வுசெய்யலாம்.', 'மருத்துவத் தகவல்கள் இந்தக் கணினியிலேயே இருக்கும். தயாரானதும் இணையமின்றி உடனே மொழி மாறும்.', '{done}/{total} இடைமுக உரைகள் தயார்', 'உள்ளூர் மொழிபெயர்ப்பு முடியவில்லை. Ollama-வைச் சரிபார்த்து மீண்டும் முயலவும்.', 'மீண்டும் முயலவும்'),
+'te': ('ఇంటర్‌ఫేస్ భాష', 'మీ భాషను సిద్ధం చేస్తున్నాం', 'స్థానిక Ollama మొత్తం ఇంటర్‌ఫేస్‌ను అనువదిస్తోంది. ఈలోపు మరో భాషను ఎంచుకోవచ్చు.', 'వైద్య సమాచారం ఈ కంప్యూటర్‌లోనే ఉంటుంది. సిద్ధమైన తరువాత ఇంటర్నెట్ లేకుండానే భాష వెంటనే మారుతుంది.', '{done}/{total} ఇంటర్‌ఫేస్ పదాలు సిద్ధం', 'స్థానిక అనువాదం పూర్తికాలేదు. Ollama తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.', 'మళ్లీ ప్రయత్నించండి'),
+}
+_FIELDS=('select','title','detail','hint','progress','error','retry')
+
+
+def message(lang, field):
+    return dict(zip(_FIELDS, _MESSAGES.get(lang, _MESSAGES['en'])))[field]

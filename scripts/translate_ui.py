@@ -74,9 +74,9 @@ def translate_batch(language, batch, timeout=190):
     )
     response = httpx.post(f'{OLLAMA_BASE_URL}/api/generate',
                           json={'model': OLLAMA_MODEL, 'prompt': prompt,
-                                'format': 'json', 'stream': False,
+                                'format': 'json', 'stream': False, 'keep_alive': '12m',
                                 'options': {'temperature': 0, 'num_ctx': 4096,
-                                            'num_predict': 1150}},
+                                            'num_predict': min(2200, max(850, 280 * len(batch)))}},
                           timeout=httpx.Timeout(timeout, connect=8.0))
     response.raise_for_status()
     raw = response.json().get('response', '').strip()
