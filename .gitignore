@@ -6,7 +6,8 @@
 *.db-*
 *.sqlite
 *.sqlite3
-instance/
+instance/*
+!instance/locale_overrides.json
 private/
 user_uploads/
 reports/
